@@ -1,0 +1,433 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Age of Heroes Clan Tracker</title>
+<style>
+  /* Reset & basics */
+  * {
+    box-sizing: border-box;
+  }
+  body, html {
+    margin: 0; padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #121212;
+    color: #eee;
+    overflow-x: hidden;
+    height: 100%;
+  }
+
+  /* Background chessboard animation */
+  body::before {
+    content: "";
+    position: fixed;
+    top:0; left:0; right:0; bottom:0;
+    background:
+      linear-gradient(45deg, #333 25%, transparent 25%) -50px 0,
+      linear-gradient(45deg, transparent 75%, #333 75%) -50px 0,
+      linear-gradient(45deg, transparent 75%, #444 75%),
+      linear-gradient(45deg, #444 25%, transparent 25%);
+    background-size: 100px 100px;
+    background-repeat: repeat;
+    opacity: 0.15;
+    animation: bgshift 20s linear infinite;
+    z-index: -1;
+  }
+  @keyframes bgshift {
+    0% {background-position: 0 0, 0 0, 0 0, 0 0;}
+    100% {background-position: 100px 100px, 100px 100px, 100px 100px, 100px 100px;}
+  }
+
+  /* Hide elements initially */
+  #app {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem;
+    display: none;
+  }
+
+  /* Clan Logo */
+  #clan-logo, #menu-clan-logo {
+    font-size: 3rem;
+    font-weight: 900;
+    text-align: center;
+    margin-bottom: 1rem;
+    color: #f0f0f0;
+    letter-spacing: 0.15em;
+    user-select: none;
+    position: relative;
+  }
+  #clan-logo::before, #menu-clan-logo::before {
+    content: "♞";
+    display: inline-block;
+    margin-right: 0.5rem;
+    animation: logo-spin 4s linear infinite;
+    color: #7afcff;
+  }
+  @keyframes logo-spin {
+    0% { transform: rotate(0deg);}
+    100% { transform: rotate(360deg);}
+  }
+
+  /* Cards container */
+  #cardsContainer {
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(180px,1fr));
+    gap: 1rem;
+  }
+
+  /* Flip card styles */
+  .flip-card {
+    background: #222;
+    border-radius: 12px;
+    perspective: 1000px;
+    box-shadow: 0 0 10px #0006;
+    cursor: pointer;
+    position: relative;
+    height: 260px;
+    transition: transform 0.3s ease;
+  }
+  .flip-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.8s cubic-bezier(0.4,0,0.2,1);
+    transform-style: preserve-3d;
+  }
+  .flip-card:hover .flip-card-inner {
+    transform: rotateY(180deg);
+  }
+
+  /* Front & back faces */
+  .flip-card-front, .flip-card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
+    backface-visibility: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    box-sizing: border-box;
+  }
+  .flip-card-front {
+    background: linear-gradient(145deg, #282828, #202020);
+  }
+  .flip-card-back {
+    background: linear-gradient(145deg, #111, #222);
+    color: #7afcff;
+    transform: rotateY(180deg);
+    font-weight: 600;
+    font-size: 1.4rem;
+  }
+
+  /* Member picture */
+  .member-pic {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 50%;
+    margin-bottom: 0.8rem;
+    border: 3px solid #7afcff;
+    box-shadow: 0 0 12px #0ff;
+  }
+
+  /* Titles on front */
+  .title-text {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #7afcff;
+    text-align: center;
+    user-select: none;
+  }
+
+  /* Level text on back */
+  .level-text {
+    margin-top: 20px;
+    font-size: 1.6rem;
+  }
+
+  /* Remove button */
+  .remove-btn {
+    margin-top: 1rem;
+    background: #ff2e2e;
+    border: none;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.3s ease;
+  }
+  .remove-btn:hover {
+    background: #cc2424;
+  }
+
+  /* Add member button */
+  #add-member-btn {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    background: #0ff;
+    border: none;
+    padding: 12px 16px;
+    font-size: 1.6rem;
+    border-radius: 50%;
+    cursor: pointer;
+    color: #111;
+    box-shadow: 0 0 10px #0ffaa;
+    user-select: none;
+    z-index: 10;
+  }
+  #add-member-btn:hover {
+    background: #0cc;
+  }
+
+  /* Add member form dropdown */
+  #add-member-form {
+    position: fixed;
+    top: 60px;
+    right: 15px;
+    background: #222;
+    border-radius: 12px;
+    box-shadow: 0 0 15px #0ff;
+    padding: 1rem;
+    display: none;
+    z-index: 15;
+    width: 260px;
+  }
+  #add-member-form label {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-weight: 600;
+    color: #7afcff;
+  }
+  #add-member-form input, #add-member-form select {
+    width: 100%;
+    margin-bottom: 1rem;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: none;
+    font-size: 1rem;
+  }
+  #add-member-form button {
+    width: 100%;
+    padding: 10px;
+    background: #0ff;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    color: #111;
+    transition: background 0.3s ease;
+  }
+  #add-member-form button:hover {
+    background: #0cc;
+  }
+
+  /* Scrollbar fix */
+  ::-webkit-scrollbar {
+    width: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #0ff;
+    border-radius: 6px;
+  }
+
+  /* Main Menu */
+  #main-menu {
+    height: 100vh;
+    background: #121212;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  #menu-clan-logo {
+    font-size: 5rem;
+    margin-bottom: 1rem;
+  }
+  #start-btn {
+    padding: 1rem 3rem;
+    font-size: 1.6rem;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    background: #0ff;
+    color: #111;
+    font-weight: 700;
+    box-shadow: 0 0 15px #0ff;
+    transition: background 0.3s ease;
+  }
+  #start-btn:hover {
+    background: #0cc;
+  }
+</style>
+</head>
+<body>
+
+<!-- Main Menu -->
+<div id="main-menu">
+  <div id="menu-clan-logo">AGE OF HEROES</div>
+  <button id="start-btn">Start Tracker</button>
+</div>
+
+<!-- App -->
+<div id="app">
+  <div id="clan-logo">AGE OF HEROES</div>
+  <button id="add-member-btn" title="Add Member">+</button>
+  <form id="add-member-form">
+    <label for="nameInput">Name</label>
+    <input id="nameInput" type="text" placeholder="Player name" required />
+    <label for="levelInput">Level (0 - 15000)</label>
+    <input id="levelInput" type="number" min="0" max="15000" value="0" required />
+    <label for="typeSelect">Piece Type</label>
+    <select id="typeSelect" required>
+      <option value="pawn">Pawn</option>
+      <option value="queen">Queen</option>
+      <option value="king">King</option>
+    </select>
+    <button type="submit">Add Member</button>
+  </form>
+
+  <div id="cardsContainer"></div>
+</div>
+
+<script>
+  // Data keys
+  const STORAGE_KEY = 'ageOfHeroesClanMembers';
+  const MAX_LEVEL = 15000;
+
+  // Default 5 members
+  const defaultMembers = [
+    { id: 1, title: "Jizzler - Levi", name: "Levi", level: 12000, type: "queen", pic: "https://i.pravatar.cc/100?u=levi" },
+    { id: 2, title: "Chigglette - Zen", name: "Zen", level: 8500, type: "pawn", pic: "" },
+    { id: 3, title: "megatron - Kyle", name: "Kyle", level: 14000, type: "queen", pic: "https://i.pravatar.cc/100?u=kyle" },
+    { id: 4, title: "Whorr - Ban", name: "Ban", level: 15000, type: "king", pic: "https://i.pravatar.cc/100?u=ban" },
+    { id: 5, title: "GOAT(TECH) - Ravynthal", name: "Ravynthal", level: 7000, type: "pawn", pic: "https://i.pravatar.cc/100?u=ravynthal" }
+  ];
+
+  // Elements
+  const mainMenu = document.getElementById('main-menu');
+  const startBtn = document.getElementById('start-btn');
+  const app = document.getElementById('app');
+  const cardsContainer = document.getElementById('cardsContainer');
+  const addMemberBtn = document.getElementById('add-member-btn');
+  const addMemberForm = document.getElementById('add-member-form');
+  const nameInput = document.getElementById('nameInput');
+  const levelInput = document.getElementById('levelInput');
+  const typeSelect = document.getElementById('typeSelect');
+
+  let members = [];
+
+  // Load members from localStorage or default
+  function loadMembers() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if(saved) {
+      members = JSON.parse(saved);
+    } else {
+      members = [...defaultMembers];
+      saveMembers();
+    }
+  }
+
+  // Save to localStorage
+  function saveMembers() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(members));
+  }
+
+  // Create chess piece SVG (simple 2D shapes)
+  function createPieceSVG(type, black = false) {
+    const fill = black ? '#222' : '#7afcff';
+    switch(type) {
+      case 'king':
+        return `<svg width="80" height="80" viewBox="0 0 64 64" fill="${fill}" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="10" r="6"/><rect x="28" y="16" width="8" height="40" rx="2"/></svg>`;
+      case 'queen':
+        return `<svg width="80" height="80" viewBox="0 0 64 64" fill="${fill}" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="12" r="5"/><circle cx="32" cy="6" r="6"/><circle cx="48" cy="12" r="5"/><rect x="22" y="16" width="20" height="40" rx="2"/></svg>`;
+      case 'pawn':
+      default:
+        return `<svg width="80" height="80" viewBox="0 0 64 64" fill="${fill}" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="20" r="10"/><rect x="26" y="30" width="12" height="26" rx="2"/></svg>`;
+    }
+  }
+
+  // Render cards
+  function renderCards() {
+    cardsContainer.innerHTML = '';
+    members.forEach(member => {
+      const isBlack = (member.name.toLowerCase() === 'zen'); // Zen is black piece
+
+      const card = document.createElement('div');
+      card.className = 'flip-card';
+      card.title = member.title;
+
+      card.innerHTML = `
+        <div class="flip-card-inner">
+          <div class="flip-card-front">
+            ${member.pic ? `<img src="${member.pic}" alt="${member.name}" class="member-pic" />` : createPieceSVG(member.type, isBlack)}
+            <div class="title-text">${member.title.split(' - ')[0]} -</div>
+            <div class="title-text">${member.title.split(' - ')[1]}</div>
+          </div>
+          <div class="flip-card-back">
+            <div>${member.title}</div>
+            <div class="level-text">Level: ${member.level}</div>
+            <button class="remove-btn" data-id="${member.id}">Remove</button>
+          </div>
+        </div>
+      `;
+
+      cardsContainer.appendChild(card);
+    });
+
+    // Remove button event
+    document.querySelectorAll('.remove-btn').forEach(btn => {
+      btn.onclick = e => {
+        const id = parseInt(e.target.dataset.id);
+        members = members.filter(m => m.id !== id);
+        saveMembers();
+        renderCards();
+      };
+    });
+  }
+
+  // Show/hide add member form
+  addMemberBtn.onclick = () => {
+    addMemberForm.style.display = addMemberForm.style.display === 'block' ? 'none' : 'block';
+  };
+
+  // Add member form submit
+  addMemberForm.onsubmit = e => {
+    e.preventDefault();
+    const name = nameInput.value.trim();
+    const level = Math.min(Math.max(parseInt(levelInput.value), 0), MAX_LEVEL);
+    const type = typeSelect.value;
+    if(name && !isNaN(level)) {
+      const newMember = {
+        id: Date.now(),
+        title: `${name} - ${name}`, // simple for new members: name - name
+        name,
+        level,
+        type,
+        pic: "" // no pic by default
+      };
+      members.push(newMember);
+      saveMembers();
+      renderCards();
+      addMemberForm.reset();
+      addMemberForm.style.display = 'none';
+    }
+  };
+
+  // Start button shows app and hides menu
+  startBtn.onclick = () => {
+    mainMenu.style.display = 'none';
+    app.style.display = 'block';
+  };
+
+  // Init
+  loadMembers();
+  renderCards();
+</script>
+</body>
+</html>
