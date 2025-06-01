@@ -199,6 +199,44 @@
         .rank-common {
             color: #aaaaaa;
         }
+        
+        /* Secret admin button */
+        .secret-button {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            z-index: 100;
+        }
+        
+        /* Admin note */
+        .admin-note {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #16213e;
+            border: 2px solid #ff4d4d;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 1000;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+            max-width: 300px;
+            text-align: center;
+            display: none;
+        }
+        
+        .admin-note button {
+            margin-top: 15px;
+            padding: 5px 15px;
+            background: #ff4d4d;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body class="demon-theme text-white min-h-screen overflow-x-hidden">
@@ -211,10 +249,12 @@
             <div class="absolute top-1/3 right-1/4 w-16 h-16 rounded-full bg-purple-500 opacity-10 blur-xl"></div>
         </div>
         
-        <div class="title-container mb-12">
+        <div class="title-container mb-12 relative">
             <h1 id="title" class="text-6xl md:text-8xl font-bold text-center demon-text slam-animation title-shadow">
                 AOH - BD Clan Level Tracker
             </h1>
+            <!-- Secret invisible button in the 'O' -->
+            <button class="secret-button" style="left: 50%; transform: translateX(-50%); top: 50%;" onclick="showAdminNote()"></button>
         </div>
         
         <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-8 fade-in">
@@ -225,6 +265,14 @@
                 <i class="fas fa-lock mr-2"></i> Admin Access
             </button>
         </div>
+    </div>
+
+    <!-- Admin Note (hidden by default) -->
+    <div class="admin-note" id="admin-note">
+        <h3>Admin Passkey</h3>
+        <p>The admin passkey is: <strong>AOHBDClan2023</strong></p>
+        <p>Keep this secret!</p>
+        <button onclick="hideAdminNote()">Close</button>
     </div>
 
     <!-- Admin Access Form -->
@@ -426,10 +474,20 @@
         const confirmModal = document.getElementById('confirm-modal');
         const playBtn = document.getElementById('play-btn');
         const adminBtn = document.getElementById('admin-btn');
+        const adminNote = document.getElementById('admin-note');
 
         // Event Listeners
         playBtn.addEventListener('click', showMembersDashboard);
         adminBtn.addEventListener('click', showAdminAccess);
+
+        // Secret admin note functions
+        function showAdminNote() {
+            adminNote.style.display = 'block';
+        }
+
+        function hideAdminNote() {
+            adminNote.style.display = 'none';
+        }
 
         // Main Menu Functions
         function showAdminAccess() {
@@ -554,11 +612,11 @@
                 memberCard.innerHTML = `
                     <div class="flex items-center mb-4">
                         <div class="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center text-xl font-bold ${rankClass}">
-                            ${index + 1}
+                            ${member.level}
                         </div>
                         <div class="ml-4">
                             <h3 class="text-xl font-bold">${member.username}</h3>
-                            <p class="text-gray-400">Level ${member.level.toLocaleString()}</p>
+                            <p class="text-gray-400">Rank #${index + 1}</p>
                         </div>
                     </div>
                     <div class="w-full bg-gray-700 rounded-full h-2.5">
