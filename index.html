@@ -43,7 +43,7 @@
     100% {background-position: 100px 100px, 100px 100px, 100px 100px, 100px 100px;}
   }
 
-  #app {
+  #appContainer  {
     max-width: 1200px;
     margin: 0 auto;
     padding: 1rem;
@@ -807,7 +807,7 @@
 </div>
 
 <!-- App -->
-<div id="app">
+<div id="appContainer ">
   <button id="admin-access-btn">Admin Access</button>
   <div id="clan-logo">AGE OF HEROES</div>
   <button id="add-member-btn" title="Add Member">+</button>
@@ -875,7 +875,7 @@
   const profilePicPreview = document.getElementById('profile-pic-preview');
   const adminKeyForm = document.getElementById('admin-key-form');
   const closeAdminForm = document.getElementById('close-admin-form');
-  const app = document.getElementById('app');
+  const appContainer = document.getElementById('app');
   const adminAccessBtn = document.getElementById('admin-access-btn');
   const cardsContainer = document.getElementById('cardsContainer');
   const addMemberBtn = document.getElementById('add-member-btn');
@@ -1075,7 +1075,7 @@
   function showApp() {
     profileSetup.style.display = 'none';
     authContainer.style.display = 'none';
-    app.style.display = 'block';
+    appContainer .style.display = 'block';
     
     adminAccessBtn.style.display = isAdmin ? 'none' : 'block';
     addMemberBtn.style.display = isAdmin ? 'block' : 'none';
@@ -1086,7 +1086,7 @@
       renderCards();
     });
     
-    createGroundSmash(app);
+    createGroundSmash(appContainer );
   }
 
   function renderCards() {
