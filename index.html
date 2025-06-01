@@ -203,12 +203,13 @@
         /* Secret admin button */
         .secret-button {
             position: absolute;
-            width: 30px;
-            height: 30px;
             background: transparent;
             border: none;
             cursor: pointer;
             z-index: 100;
+            opacity: 0;
+            top: 50%;
+            transform: translateY(-50%);
         }
         
         /* Admin note */
@@ -237,6 +238,20 @@
             color: white;
             cursor: pointer;
         }
+
+        /* Level badge styles */
+        .level-badge {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.1rem;
+            background: linear-gradient(135deg, #2c3e50 0%, #1a1a2e 100%);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
     </style>
 </head>
 <body class="demon-theme text-white min-h-screen overflow-x-hidden">
@@ -250,11 +265,13 @@
         </div>
         
         <div class="title-container mb-12 relative">
-            <h1 id="title" class="text-6xl md:text-8xl font-bold text-center demon-text slam-animation title-shadow">
-                AOH - BD Clan Level Tracker
+            <h1 id="title" class="text-6xl md:text-8xl font-bold text-center demon-text slam-animation title-shadow relative">
+                <span class="inline-block">
+                    AOH
+                    <button class="secret-button" style="width: 100%; height: 100%; left: 0;" onclick="showAdminNote()"></button>
+                </span>
+                <span class="inline-block">- BD Clan Level Tracker</span>
             </h1>
-            <!-- Secret invisible button in the 'O' -->
-            <button class="secret-button" style="left: 50%; transform: translateX(-50%); top: 50%;" onclick="showAdminNote()"></button>
         </div>
         
         <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-8 fade-in">
@@ -270,7 +287,7 @@
     <!-- Admin Note (hidden by default) -->
     <div class="admin-note" id="admin-note">
         <h3>Admin Passkey</h3>
-        <p>The admin passkey is: <strong>AOHBDClan2023</strong></p>
+        <p>The admin passkey is: <strong>ZenIsTrashBDFR</strong></p>
         <p>Keep this secret!</p>
         <button onclick="hideAdminNote()">Close</button>
     </div>
@@ -394,7 +411,7 @@
                 <button onclick="executeConfirmedAction()" class="flex-1 demon-btn py-3 px-4 rounded-lg font-bold transition duration-300 hover:bg-red-700">
                     Confirm
                 </button>
-                <button onclick="hideConfirmModal()" class="flex-1 bg-gray-700 hover:bg-gray-600 py-3 px-4 rounded-lg font-bold transition duration-300">
+                <button onclick="hideConfirmModal()" class="flex-1 bg-gray-7 00 hover:bg-gray-600 py-3 px-4 rounded-lg font-bold transition duration-300">
                     Cancel
                 </button>
             </div>
@@ -611,7 +628,7 @@
                 
                 memberCard.innerHTML = `
                     <div class="flex items-center mb-4">
-                        <div class="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center text-xl font-bold ${rankClass}">
+                        <div class="level-badge ${rankClass}">
                             ${member.level}
                         </div>
                         <div class="ml-4">
