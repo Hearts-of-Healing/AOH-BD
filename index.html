@@ -105,15 +105,6 @@
             left: 100%;
         }
         
-        .member-card {
-            transition: all 0.3s ease;
-        }
-        
-        .member-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-        }
-        
         /* Theme colors */
         .demon-theme {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
@@ -166,6 +157,48 @@
         .angel-btn:hover {
             background-color: #1a53ff;
         }
+        
+        /* Progress bar colors */
+        .progress-legendary {
+            background-color: #ff0000;
+        }
+        
+        .progress-epic {
+            background-color: #aa00ff;
+        }
+        
+        .progress-rare {
+            background-color: #0055ff;
+        }
+        
+        .progress-uncommon {
+            background-color: #00aa00;
+        }
+        
+        .progress-common {
+            background-color: #aaaaaa;
+        }
+        
+        /* Rank colors */
+        .rank-legendary {
+            color: #ff0000;
+        }
+        
+        .rank-epic {
+            color: #aa00ff;
+        }
+        
+        .rank-rare {
+            color: #0055ff;
+        }
+        
+        .rank-uncommon {
+            color: #00aa00;
+        }
+        
+        .rank-common {
+            color: #aaaaaa;
+        }
     </style>
 </head>
 <body class="demon-theme text-white min-h-screen overflow-x-hidden">
@@ -186,7 +219,7 @@
         
         <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-8 fade-in">
             <button id="play-btn" class="btn-hover-effect demon-btn font-bold py-3 px-6 rounded-lg text-xl transition-all duration-300 transform hover:scale-105 pulse-animation">
-                <i class="fas fa-play mr-2"></i> Play
+                <i class="fas fa-play mr-2"></i> View Members
             </button>
             <button id="admin-btn" class="btn-hover-effect bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg text-xl transition-all duration-300 transform hover:scale-105 pulse-animation" style="animation-delay: 0.5s;">
                 <i class="fas fa-lock mr-2"></i> Admin Access
@@ -194,74 +227,6 @@
         </div>
     </div>
 
-    <!-- Login/Register Form -->
-    <div id="login-container" class="hidden fixed inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center z-50">
-        <div class="demon-bg p-8 rounded-lg shadow-xl w-full max-w-md relative">
-            <button onclick="hideLogin()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
-                <i class="fas fa-times text-2xl"></i>
-            </button>
-            
-            <div id="login-form">
-                <h2 class="text-3xl font-bold mb-6 demon-text">Login</h2>
-                
-                <div class="mb-4">
-                    <label for="login-username" class="block mb-2">Username</label>
-                    <input type="text" id="login-username" class="w-full p-3 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:border-red-500">
-                </div>
-                
-                <div class="mb-6">
-                    <label for="login-password" class="block mb-2">Password</label>
-                    <input type="password" id="login-password" class="w-full p-3 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:border-red-500">
-                </div>
-                
-                <button onclick="login()" class="w-full demon-btn py-3 px-4 rounded-lg font-bold mb-4 transition duration-300 hover:bg-red-700">
-                    Login
-                </button>
-                
-                <p class="text-center text-gray-400">
-                    Don't have an account? 
-                    <a onclick="showRegisterForm()" class="demon-text cursor-pointer hover:underline">Register here</a>
-                </p>
-            </div>
-            
-            <div id="register-form" class="hidden">
-                <h2 class="text-3xl font-bold mb-6 demon-text">Register</h2>
-                
-                <div class="mb-4">
-                    <label for="reg-username" class="block mb-2">Username</label>
-                    <input type="text" id="reg-username" class="w-full p-3 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:border-red-500">
-                    <p id="username-error" class="text-red-500 text-sm mt-1 hidden"></p>
-                </div>
-                
-                <div class="mb-4">
-                    <label for="reg-password" class="block mb-2">Password</label>
-                    <input type="password" id="reg-password" class="w-full p-3 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:border-red-500">
-                </div>
-                
-                <div class="mb-4">
-                    <label for="reg-confirm-password" class="block mb-2">Confirm Password</label>
-                    <input type="password" id="reg-confirm-password" class="w-full p-3 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:border-red-500">
-                    <p id="password-error" class="text-red-500 text-sm mt-1 hidden">Passwords don't match</p>
-                </div>
-                
-                <div class="mb-6">
-                    <label for="reg-level" class="block mb-2">Current Level</label>
-                    <input type="number" id="reg-level" class="w-full p-3 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:border-red-500">
-                    <p id="level-error" class="text-red-500 text-sm mt-1 hidden">Please enter your level</p>
-                </div>
-                
-                <button onclick="register()" class="w-full demon-btn py-3 px-4 rounded-lg font-bold mb-4 transition duration-300 hover:bg-red-700">
-                    Register
-                </button>
-                
-                <p class="text-center text-gray-400">
-                    Already have an account? 
-                    <a onclick="showLoginForm()" class="demon-text cursor-pointer hover:underline">Login here</a>
-                </p>
-            </div>
-        </div>
-    </div>
-    
     <!-- Admin Access Form -->
     <div id="admin-access-container" class="hidden fixed inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center z-50">
         <div class="demon-bg p-8 rounded-lg shadow-xl w-full max-w-md">
@@ -295,12 +260,12 @@
                     </button>
                     
                     <button onclick="logout()" class="bg-gray-700 hover:bg-gray-600 py-2 px-4 rounded-lg font-bold transition duration-300">
-                        <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                        <i class="fas fa-sign-out-alt mr-2"></i> Back
                     </button>
                 </div>
             </div>
             
-            <div class="mb-6">
+            <div class="mb-6 hidden" id="admin-controls">
                 <div class="flex items-center space-x-4">
                     <input type="password" id="admin-key-input" placeholder="Enter admin key" class="p-2 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:border-red-500">
                     <button onclick="verifyDashboardAdminKey()" class="demon-btn py-2 px-4 rounded-lg font-bold transition duration-300 hover:bg-red-700">
@@ -396,15 +361,18 @@
         function initializeData() {
             if (!localStorage.getItem(STORAGE_KEY)) {
                 const defaultMembers = [
-                    { username: "Dan", level: 100, password: "dan123" },
-                    { username: "Ban", level: 95, password: "ban123" },
-                    { username: "Levi", level: 90, password: "levi123" },
-                    { username: "Kyle", level: 85, password: "kyle123" },
-                    { username: "Zen", level: 50, password: "zen123" }
+                    { username: "Kyle", level: 8100 },
+                    { username: "Tri", level: 5400 },
+                    { username: "Soldier", level: 5400 },
+                    { username: "Zen", level: 5000 },
+                    { username: "Ban", level: 3200 },
+                    { username: "Void", level: 2100 },
+                    { username: "BD_Ravynthal", level: 1713 },
+                    { username: "DUCK", level: 490 }
                 ];
                 localStorage.setItem(STORAGE_KEY, JSON.stringify({
                     members: defaultMembers,
-                    adminKey: "ZenIsTrashBDFR"
+                    adminKey: "AOHBDClan2023"
                 }));
             }
         }
@@ -443,17 +411,16 @@
         
         const ADMIN_KEY = getAdminKey();
         let isAdmin = false;
-        let currentUser = null;
         let currentAction = null;
         let currentMember = null;
 
         // DOM Elements
         const mainMenu = document.getElementById('main-menu');
-        const loginContainer = document.getElementById('login-container');
         const adminAccessContainer = document.getElementById('admin-access-container');
         const membersDashboard = document.getElementById('members-dashboard');
         const membersGrid = document.getElementById('members-grid');
         const addMemberBtn = document.getElementById('add-member-btn');
+        const adminControls = document.getElementById('admin-controls');
         const addMemberModal = document.getElementById('add-member-modal');
         const editMemberModal = document.getElementById('edit-member-modal');
         const confirmModal = document.getElementById('confirm-modal');
@@ -461,26 +428,10 @@
         const adminBtn = document.getElementById('admin-btn');
 
         // Event Listeners
-        playBtn.addEventListener('click', showLogin);
+        playBtn.addEventListener('click', showMembersDashboard);
         adminBtn.addEventListener('click', showAdminAccess);
 
         // Main Menu Functions
-        function showLogin() {
-            // Add click effect
-            const btn = event.target.closest('button');
-            btn.classList.add('glow-animation');
-            setTimeout(() => btn.classList.remove('glow-animation'), 2000);
-            
-            loginContainer.classList.remove('hidden');
-            document.getElementById('login-form').classList.remove('hidden');
-            document.getElementById('register-form').classList.add('hidden');
-        }
-
-        function hideLogin() {
-            loginContainer.classList.add('hidden');
-            resetLoginForm();
-        }
-
         function showAdminAccess() {
             // Add click effect
             const btn = event.target.closest('button');
@@ -496,107 +447,6 @@
             document.getElementById('admin-key-error').classList.add('hidden');
         }
 
-        // Login/Register Functions
-        function showRegisterForm() {
-            document.getElementById('login-form').classList.add('hidden');
-            document.getElementById('register-form').classList.remove('hidden');
-            resetRegisterForm();
-        }
-
-        function showLoginForm() {
-            document.getElementById('login-form').classList.remove('hidden');
-            document.getElementById('register-form').classList.add('hidden');
-            resetRegisterForm();
-        }
-
-        function resetLoginForm() {
-            document.getElementById('login-username').value = '';
-            document.getElementById('login-password').value = '';
-        }
-
-        function resetRegisterForm() {
-            document.getElementById('reg-username').value = '';
-            document.getElementById('reg-password').value = '';
-            document.getElementById('reg-confirm-password').value = '';
-            document.getElementById('reg-level').value = '';
-            document.getElementById('username-error').classList.add('hidden');
-            document.getElementById('password-error').classList.add('hidden');
-            document.getElementById('level-error').classList.add('hidden');
-        }
-
-        function login() {
-            const username = document.getElementById('login-username').value.trim();
-            const password = document.getElementById('login-password').value;
-            
-            const members = getMembers();
-            const member = members.find(m => m.username.toLowerCase() === username.toLowerCase());
-            
-            if (member && member.password === password) {
-                currentUser = member;
-                showMembersDashboard();
-            } else {
-                alert("Invalid username or password");
-            }
-        }
-
-        function register() {
-            const username = document.getElementById('reg-username').value.trim();
-            const password = document.getElementById('reg-password').value;
-            const confirmPassword = document.getElementById('reg-confirm-password').value;
-            const level = document.getElementById('reg-level').value;
-            
-            // Validate inputs
-            let isValid = true;
-            
-            // Check if username exists
-            const members = getMembers();
-            const usernameExists = members.some(m => m.username.toLowerCase() === username.toLowerCase());
-            if (usernameExists) {
-                document.getElementById('username-error').textContent = "Username already exists. Contact Dan, Ban, Levi, or Kyle.";
-                document.getElementById('username-error').classList.remove('hidden');
-                document.getElementById('reg-username').classList.add('shake');
-                setTimeout(() => document.getElementById('reg-username').classList.remove('shake'), 500);
-                isValid = false;
-            } else {
-                document.getElementById('username-error').classList.add('hidden');
-            }
-            
-            // Check password match
-            if (password !== confirmPassword) {
-                document.getElementById('password-error').classList.remove('hidden');
-                document.getElementById('reg-confirm-password').classList.add('shake');
-                setTimeout(() => document.getElementById('reg-confirm-password').classList.remove('shake'), 500);
-                isValid = false;
-            } else {
-                document.getElementById('password-error').classList.add('hidden');
-            }
-            
-            // Check level
-            if (!level) {
-                document.getElementById('level-error').classList.remove('hidden');
-                document.getElementById('reg-level').classList.add('shake');
-                setTimeout(() => document.getElementById('reg-level').classList.remove('shake'), 500);
-                isValid = false;
-            } else {
-                document.getElementById('level-error').classList.add('hidden');
-            }
-            
-            if (!isValid) return;
-            
-            // Add new member
-            const newMember = {
-                username: username,
-                level: parseInt(level),
-                password: password
-            };
-            
-            const updatedMembers = [...members, newMember];
-            updateMembers(updatedMembers);
-            
-            alert("Registration successful! You can now login.");
-            showLoginForm();
-        }
-
         // Admin Functions
         function verifyAdminKey() {
             const key = document.getElementById('admin-key').value;
@@ -605,6 +455,8 @@
                 isAdmin = true;
                 hideAdminAccess();
                 showMembersDashboard();
+                adminControls.classList.remove('hidden');
+                addMemberBtn.classList.remove('hidden');
             } else {
                 document.getElementById('admin-key-error').classList.remove('hidden');
                 document.getElementById('admin-key').classList.add('shake');
@@ -618,6 +470,8 @@
             if (key === ADMIN_KEY) {
                 isAdmin = true;
                 document.getElementById('admin-key-input').value = '';
+                adminControls.classList.add('hidden');
+                addMemberBtn.classList.remove('hidden');
                 updateAdminUI();
             } else {
                 document.getElementById('admin-key-input').classList.add('shake');
@@ -628,18 +482,14 @@
         // Members Dashboard Functions
         function showMembersDashboard() {
             mainMenu.classList.add('hidden');
-            loginContainer.classList.add('hidden');
             adminAccessContainer.classList.add('hidden');
             membersDashboard.classList.remove('hidden');
             
-            updateAdminUI();
             renderMembersGrid();
         }
 
         function updateAdminUI() {
             if (isAdmin) {
-                addMemberBtn.classList.remove('hidden');
-                
                 // Add edit buttons to all member cards
                 const memberCards = document.querySelectorAll('.member-card');
                 memberCards.forEach(card => {
@@ -656,8 +506,6 @@
                     }
                 });
             } else {
-                addMemberBtn.classList.add('hidden');
-                
                 // Remove edit buttons from member cards
                 const editButtons = document.querySelectorAll('.edit-btn');
                 editButtons.forEach(btn => btn.remove());
@@ -671,7 +519,7 @@
             const members = getMembers();
             const sortedMembers = [...members].sort((a, b) => b.level - a.level);
             
-            sortedMembers.forEach(member => {
+            sortedMembers.forEach((member, index) => {
                 const memberCard = document.createElement('div');
                 memberCard.className = 'member-card demon-card p-6 rounded-lg shadow-lg relative cursor-pointer transition-all duration-300';
                 memberCard.setAttribute('data-username', member.username);
@@ -683,29 +531,48 @@
                 }
                 
                 // Determine rank color based on level
-                let rankColor = 'text-gray-400';
-                if (member.level >= 90) rankColor = 'text-red-500';
-                else if (member.level >= 70) rankColor = 'text-purple-500';
-                else if (member.level >= 50) rankColor = 'text-blue-500';
-                else if (member.level >= 30) rankColor = 'text-green-500';
+                let rankClass = 'rank-common';
+                let progressClass = 'progress-common';
+                
+                if (member.level >= 5000) {
+                    rankClass = 'rank-legendary';
+                    progressClass = 'progress-legendary';
+                } else if (member.level >= 2000) {
+                    rankClass = 'rank-epic';
+                    progressClass = 'progress-epic';
+                } else if (member.level >= 1000) {
+                    rankClass = 'rank-rare';
+                    progressClass = 'progress-rare';
+                } else if (member.level >= 500) {
+                    rankClass = 'rank-uncommon';
+                    progressClass = 'progress-uncommon';
+                }
+                
+                // Calculate progress percentage (capped at 100%)
+                const progressPercentage = Math.min(100, (member.level / 10000) * 100);
                 
                 memberCard.innerHTML = `
                     <div class="flex items-center mb-4">
-                        <div class="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center text-xl font-bold ${rankColor}">
-                            ${member.level}
+                        <div class="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center text-xl font-bold ${rankClass}">
+                            ${index + 1}
                         </div>
                         <div class="ml-4">
                             <h3 class="text-xl font-bold">${member.username}</h3>
-                            <p class="text-gray-400">Level ${member.level}</p>
+                            <p class="text-gray-400">Level ${member.level.toLocaleString()}</p>
                         </div>
                     </div>
                     <div class="w-full bg-gray-700 rounded-full h-2.5">
-                        <div class="bg-red-500 h-2.5 rounded-full" style="width: ${Math.min(member.level, 100)}%"></div>
+                        <div class="${progressClass} h-2.5 rounded-full" style="width: ${progressPercentage}%"></div>
                     </div>
                 `;
                 
                 membersGrid.appendChild(memberCard);
             });
+            
+            // Update admin UI if needed
+            if (isAdmin) {
+                updateAdminUI();
+            }
         }
 
         // Member Management Functions
@@ -721,6 +588,8 @@
         }
 
         function showEditMemberModal(username) {
+            if (!isAdmin) return;
+            
             const members = getMembers();
             const member = members.find(m => m.username === username);
             if (!member) return;
@@ -765,11 +634,10 @@
                 return;
             }
             
-            // Add new member with default password
+            // Add new member
             const newMember = {
                 username: username,
-                level: level,
-                password: "default123" // In a real app, you'd generate a temp password or have admin set one
+                level: level
             };
             
             const updatedMembers = [...members, newMember];
@@ -777,7 +645,6 @@
             
             hideAddMemberModal();
             renderMembersGrid();
-            updateAdminUI();
         }
 
         function updateMemberLevel() {
@@ -833,9 +700,10 @@
 
         function logout() {
             isAdmin = false;
-            currentUser = null;
             membersDashboard.classList.add('hidden');
             mainMenu.classList.remove('hidden');
+            adminControls.classList.add('hidden');
+            addMemberBtn.classList.add('hidden');
         }
 
         // Initialize when page loads
