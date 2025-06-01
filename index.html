@@ -1,1412 +1,848 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta name="mobile-web-app-capable" content="yes">
-<title>Age of Heroes Clan Tracker</title>
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
-<style>
-  * {
-    box-sizing: border-box;
-  }
-  body, html {
-    margin: 0; padding: 0;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #121212;
-    color: #eee;
-    overflow-x: hidden;
-    height: 100%;
-  }
-
-  body::before {
-    content: "";
-    position: fixed;
-    top:0; left:0; right:0; bottom:0;
-    background:
-      linear-gradient(45deg, #333 25%, transparent 25%) -50px 0,
-      linear-gradient(45deg, transparent 75%, #333 75%) -50px 0,
-      linear-gradient(45deg, transparent 75%, #444 75%),
-      linear-gradient(45deg, #444 25%, transparent 25%);
-    background-size: 100px 100px;
-    background-repeat: repeat;
-    opacity: 0.15;
-    animation: bgshift 20s linear infinite;
-    z-index: -1;
-  }
-  @keyframes bgshift {
-    0% {background-position: 0 0, 0 0, 0 0, 0 0;}
-    100% {background-position: 100px 100px, 100px 100px, 100px 100px, 100px 100px;}
-  }
-
-  #appContainer  {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 1rem;
-    display: none;
-  }
-
-  #clan-logo, #menu-clan-logo {
-    font-size: 3rem;
-    font-weight: 900;
-    text-align: center;
-    margin-bottom: 1rem;
-    color: #f0f0f0;
-    letter-spacing: 0.15em;
-    user-select: none;
-    position: relative;
-  }
-  #clan-logo::before, #menu-clan-logo::before {
-    content: "♞";
-    display: inline-block;
-    margin-right: 0.5rem;
-    animation: logo-shine 3s infinite linear;
-    color: #7afcff;
-  }
-  @keyframes logo-shine {
-    0%, 90%, 100% {
-      text-shadow: 0 0 0 #0ff;
-    }
-    95% {
-      text-shadow: 0 0 15px #0ff;
-    }
-  }
-
-  #cardsContainer {
-    display: grid;
-    grid-template-columns: repeat(auto-fit,minmax(180px,1fr));
-    gap: 1rem;
-    position: relative;
-  }
-
-  .flip-card {
-    background: #222;
-    border-radius: 12px;
-    perspective: 1000px;
-    box-shadow: 0 0 10px #0006;
-    cursor: pointer;
-    position: relative;
-    height: 260px;
-    transform-style: preserve-3d;
-  }
-  
-  .flip-card-inner {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    transition: transform 0.6s;
-    transform-style: preserve-3d;
-  }
-  
-  @media (hover: hover) {
-    .flip-card:hover .flip-card-inner {
-      transform: rotateY(180deg);
-    }
-  }
-  
-  .flip-card.flipped .flip-card-inner {
-    transform: rotateY(180deg);
-  }
-
-  .flip-card-front, .flip-card-back {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-    border-radius: 12px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-    box-sizing: border-box;
-  }
-  
-  .flip-card-front {
-    background: linear-gradient(145deg, #282828, #202020);
-  }
-  
-  .flip-card-back {
-    background: linear-gradient(145deg, #111, #222);
-    color: #7afcff;
-    transform: rotateY(180deg);
-    font-weight: 600;
-    font-size: 1.4rem;
-  }
-
-  .member-pic {
-    width: 100px;
-    height: 100px;
-    object-fit: cover;
-    border-radius: 50%;
-    margin-bottom: 0.8rem;
-    border: 3px solid #7afcff;
-    box-shadow: 0 0 12px #0ff;
-  }
-
-  .title-text {
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: #7afcff;
-    text-align: center;
-    user-select: none;
-  }
-
-  .level-text {
-    margin-top: 20px;
-    font-size: 1.6rem;
-  }
-
-  .remove-btn {
-    margin-top: 1rem;
-    background: #ff2e2e;
-    border: none;
-    color: white;
-    padding: 6px 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-    transition: background 0.3s ease;
-  }
-  .remove-btn:hover {
-    background: #cc2424;
-  }
-
-  #add-member-btn {
-    position: fixed;
-    top: 15px;
-    right: 15px;
-    background: #0ff;
-    border: none;
-    padding: 12px 16px;
-    font-size: 1.6rem;
-    border-radius: 50%;
-    cursor: pointer;
-    color: #111;
-    box-shadow: 0 0 10px #0ffaa;
-    user-select: none;
-    z-index: 10;
-    display: none;
-  }
-  #add-member-btn:hover {
-    background: #0cc;
-  }
-
-  #admin-access-btn {
-    position: fixed;
-    top: 15px;
-    left: 15px;
-    background: #ff9900;
-    border: none;
-    padding: 8px 12px;
-    font-size: 1rem;
-    border-radius: 8px;
-    cursor: pointer;
-    color: #111;
-    font-weight: bold;
-    box-shadow: 0 0 10px #ff9900aa;
-    user-select: none;
-    z-index: 10;
-    display: none;
-  }
-  #admin-access-btn:hover {
-    background: #cc7700;
-  }
-
-  #add-member-form {
-    position: fixed;
-    top: 60px;
-    right: 15px;
-    background: #222;
-    border-radius: 12px;
-    box-shadow: 0 0 15px #0ff;
-    padding: 1rem;
-    display: none;
-    z-index: 15;
-    width: 260px;
-  }
-  #add-member-form label {
-    display: block;
-    margin-bottom: 0.3rem;
-    font-weight: 600;
-    color: #7afcff;
-  }
-  #add-member-form input, #add-member-form select {
-    width: 100%;
-    margin-bottom: 1rem;
-    padding: 8px 10px;
-    border-radius: 6px;
-    border: none;
-    font-size: 1rem;
-  }
-  #add-member-form button {
-    width: 100%;
-    padding: 10px;
-    background: #0ff;
-    border: none;
-    border-radius: 8px;
-    font-weight: 700;
-    cursor: pointer;
-    color: #111;
-    transition: background 0.3s ease;
-  }
-  #add-member-form button:hover {
-    background: #0cc;
-  }
-
-  ::-webkit-scrollbar {
-    width: 10px;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: #0ff;
-    border-radius: 6px;
-  }
-
-  /* Main Menu Styles */
-  #main-menu {
-    height: 100vh;
-    background: #121212;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-  }
-  #menu-clan-logo {
-    font-size: 5rem;
-    margin-bottom: 2rem;
-    transform: translateY(-100vh);
-    animation: titleDrop 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-  }
-
-  @keyframes titleDrop {
-    0% {
-      transform: translateY(-100vh);
-    }
-    80% {
-      transform: translateY(20px);
-    }
-    100% {
-      transform: translateY(0);
-    }
-  }
-
-  /* Ground Crack Effect */
-  .ground-crack {
-    position: absolute;
-    bottom: -20px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 0;
-    height: 10px;
-    background: radial-gradient(ellipse at center, 
-      rgba(122,252,255,0.8) 0%, 
-      rgba(122,252,255,0) 70%);
-    border-radius: 50%;
-    animation: crackExpand 0.8s 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-    z-index: -1;
-  }
-
-  @keyframes crackExpand {
-    0% {
-      width: 0;
-      height: 10px;
-      opacity: 1;
-    }
-    100% {
-      width: 400px;
-      height: 100px;
-      opacity: 0;
-    }
-  }
-
-  /* Orbit Container */
-  .orbit-container {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 300px;
-    height: 300px;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 1s;
-  }
-
-  /* Orbiting Objects */
-  .orbiter {
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #7afcff;
-    box-shadow: 0 0 10px #7afcff;
-    animation: orbit 8s linear infinite;
-    transform-origin: 150px 150px;
-  }
-
-  .orbiter:nth-child(1) {
-    background: #7afcff;
-    animation-delay: 0s;
-  }
-  .orbiter:nth-child(2) {
-    background: #ff7a7a;
-    animation-delay: -2s;
-  }
-  .orbiter:nth-child(3) {
-    background: #7aff7a;
-    animation-delay: -4s;
-  }
-  .orbiter:nth-child(4) {
-    background: #ffcc7a;
-    animation-delay: -6s;
-  }
-
-  @keyframes orbit {
-    0% {
-      transform: rotate(0deg) translateX(150px) rotate(0deg);
-    }
-    100% {
-      transform: rotate(360deg) translateX(150px) rotate(-360deg);
-    }
-  }
-
-  .menu-btn {
-    padding: 1rem 3rem;
-    font-size: 1.6rem;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    background: #0ff;
-    color: #111;
-    font-weight: 700;
-    box-shadow: 0 0 15px #0ff;
-    transition: all 0.3s ease;
-    margin: 0.5rem 0;
-    width: 250px;
-    text-align: center;
-  }
-  .menu-btn:hover {
-    background: #0cc;
-    transform: scale(1.05);
-  }
-
-  /* Play button specific styles */
-  #play-btn {
-    background: linear-gradient(145deg, #00ffff, #00cccc);
-    box-shadow: 0 5px 20px rgba(0, 255, 255, 0.4),
-                0 0 0 2px #0ff inset;
-    position: relative;
-    overflow: hidden;
-    z-index: 1;
-  }
-
-  #play-btn:hover {
-    transform: translateY(-5px) scale(1.05);
-    box-shadow: 0 8px 25px rgba(0, 255, 255, 0.6),
-                0 0 0 4px #0ff inset;
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
-  }
-
-  #play-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, 
-              transparent, 
-              rgba(255, 255, 255, 0.2), 
-              transparent);
-    transition: 0.5s;
-    z-index: -1;
-  }
-
-  #play-btn:hover::before {
-    left: 100%;
-  }
-
-  #play-btn::after {
-    content: '▶';
-    position: absolute;
-    left: -20px;
-    top: 50%;
-    transform: translateY(-50%);
-    opacity: 0;
-    transition: all 0.3s ease;
-  }
-
-  #play-btn:hover::after {
-    left: 20px;
-    opacity: 1;
-  }
-
-  /* Auth Container Styles */
-  #auth-container {
-    display: none;
-    height: 100vh;
-    background: #121212;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  /* Profile Setup Styles */
-  #profile-setup {
-    display: none;
-    height: 100vh;
-    background: #121212;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  /* Form Styles */
-  .form-container {
-    background: #222;
-    padding: 2rem;
-    border-radius: 12px;
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-    width: 320px;
-    margin-top: 1rem;
-  }
-  
-  .form-container h2 {
-    color: #7afcff;
-    text-align: center;
-    margin-top: 0;
-  }
-  
-  .form-container label {
-    display: block;
-    margin-bottom: 0.5rem;
-    color: #7afcff;
-  }
-  
-  .form-container input, .form-container select {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 1rem;
-    border-radius: 6px;
-    border: none;
-    background: #333;
-    color: white;
-  }
-  
-  .form-container button {
-    width: 100%;
-    padding: 12px;
-    background: #0ff;
-    border: none;
-    border-radius: 8px;
-    color: #111;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background 0.3s;
-  }
-  
-  .form-container button:hover {
-    background: #0cc;
-  }
-  
-  .error-message {
-    color: #ff6b6b;
-    text-align: center;
-    margin-bottom: 1rem;
-    display: none;
-  }
-  
-  .success-message {
-    color: #7afcff;
-    text-align: center;
-    margin-bottom: 1rem;
-    display: none;
-  }
-  
-  /* Profile Picture Upload */
-  .profile-pic-upload {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-bottom: 1rem;
-  }
-  
-  .profile-pic-preview {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 3px solid #7afcff;
-    margin-bottom: 1rem;
-    display: none;
-  }
-  
-  .upload-btn {
-    background: #333;
-    color: #7afcff;
-    padding: 8px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    text-align: center;
-    transition: background 0.3s;
-  }
-  
-  .upload-btn:hover {
-    background: #444;
-  }
-  
-  /* Navigation Links */
-  .nav-link {
-    color: #7afcff;
-    text-decoration: none;
-    margin-top: 1rem;
-    display: block;
-    text-align: center;
-    cursor: pointer;
-  }
-  
-  .nav-link:hover {
-    text-decoration: underline;
-  }
-  
-  /* Admin Key Form */
-  #admin-key-form {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: #222;
-    padding: 2rem;
-    border-radius: 12px;
-    box-shadow: 0 0 20px rgba(255, 153, 0, 0.5);
-    width: 320px;
-    z-index: 100;
-    display: none;
-  }
-  
-  #admin-key-form h2 {
-    color: #ff9900;
-    text-align: center;
-    margin-top: 0;
-  }
-  
-  #admin-key-form p {
-    color: #aaa;
-    text-align: center;
-    margin-bottom: 1.5rem;
-  }
-  
-  #admin-key-form input {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 1rem;
-    border-radius: 6px;
-    border: none;
-    background: #333;
-    color: white;
-  }
-  
-  #admin-key-form button {
-    width: 100%;
-    padding: 12px;
-    background: #ff9900;
-    border: none;
-    border-radius: 8px;
-    color: #111;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background 0.3s;
-  }
-  
-  #admin-key-form button:hover {
-    background: #cc7700;
-  }
-  
-  #close-admin-form {
-    display: block;
-    text-align: center;
-    margin-top: 1rem;
-    color: #ff9900;
-    cursor: pointer;
-  }
-  
-  /* Ground Smash Animation */
-  .ground-smash {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
-    pointer-events: none;
-    z-index: 5;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .ground-smash-effect {
-    width: 300px;
-    height: 300px;
-    background: radial-gradient(circle, rgba(122,252,255,0.8) 0%, rgba(122,252,255,0) 70%);
-    border-radius: 50%;
-    transform: scale(0);
-    opacity: 0;
-    animation: groundSmash 1s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  
-  @keyframes groundSmash {
-    0% {
-      transform: scale(0);
-      opacity: 0.8;
-    }
-    70% {
-      opacity: 0.5;
-    }
-    100% {
-      transform: scale(3);
-      opacity: 0;
-    }
-  }
-
-  /* Ripple effect styles */
-  .ripple {
-    position: absolute;
-    background: rgba(255, 255, 255, 0.4);
-    border-radius: 50%;
-    transform: scale(0);
-    animation: ripple 0.6s linear;
-    pointer-events: none;
-  }
-
-  @keyframes ripple {
-    to {
-      transform: scale(4);
-      opacity: 0;
-    }
-  }
-
-  /* Shake animation */
-  @keyframes shake {
-    0%, 100% { transform: translateX(-50%) translateY(-50%); }
-    20%, 60% { transform: translateX(-50%) translateY(-50%) translateX(-5px); }
-    40%, 80% { transform: translateX(-50%) translateY(-50%) translateX(5px); }
-  }
-  .shake {
-    animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-  }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AOH - BD Clan Level Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Keyframe animations */
+        @keyframes groundSlam {
+            0% {
+                transform: translateY(-100px) scale(1.5);
+                opacity: 0;
+                text-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
+            }
+            60% {
+                transform: translateY(20px) scale(1.1);
+                opacity: 1;
+                text-shadow: 0 0 10px rgba(255, 0, 0, 0.7);
+            }
+            80% {
+                transform: translateY(-10px) scale(1.05);
+            }
+            100% {
+                transform: translateY(0) scale(1);
+                text-shadow: 0 0 5px rgba(255, 0, 0, 0.3);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes glow {
+            0% { box-shadow: 0 0 5px rgba(255, 0, 0, 0.5); }
+            50% { box-shadow: 0 0 15px rgba(255, 0, 0, 0.8); }
+            100% { box-shadow: 0 0 5px rgba(255, 0, 0, 0.5); }
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+        
+        /* Animation classes */
+        .slam-animation {
+            animation: groundSlam 1.2s ease-out forwards;
+        }
+        
+        .fade-in {
+            animation: fadeIn 1s ease-in forwards;
+            animation-delay: 1s;
+            opacity: 0;
+        }
+        
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        
+        .glow-animation {
+            animation: glow 2s ease-in-out infinite;
+        }
+        
+        .shake {
+            animation: shake 0.5s;
+        }
+        
+        /* Custom styles */
+        .title-container {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .title-shadow {
+            text-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
+        }
+        
+        .btn-hover-effect {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-hover-effect::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: all 0.5s;
+        }
+        
+        .btn-hover-effect:hover::after {
+            left: 100%;
+        }
+        
+        .member-card {
+            transition: all 0.3s ease;
+        }
+        
+        .member-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Theme colors */
+        .demon-theme {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+        
+        .angel-theme {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+        
+        .demon-text {
+            color: #ff4d4d;
+        }
+        
+        .angel-text {
+            color: #4d79ff;
+        }
+        
+        .demon-bg {
+            background-color: #1a1a2e;
+        }
+        
+        .angel-bg {
+            background-color: #f5f7fa;
+        }
+        
+        .demon-card {
+            background-color: #16213e;
+            border-left: 4px solid #ff4d4d;
+        }
+        
+        .angel-card {
+            background-color: #c3cfe2;
+            border-left: 4px solid #4d79ff;
+        }
+        
+        .demon-btn {
+            background-color: #ff4d4d;
+            color: white;
+        }
+        
+        .angel-btn {
+            background-color: #4d79ff;
+            color: white;
+        }
+        
+        .demon-btn:hover {
+            background-color: #ff1a1a;
+        }
+        
+        .angel-btn:hover {
+            background-color: #1a53ff;
+        }
+    </style>
 </head>
-<body>
+<body class="demon-theme text-white min-h-screen overflow-x-hidden">
+    <!-- Main Menu -->
+    <div id="main-menu" class="flex flex-col items-center justify-center min-h-screen relative">
+        <!-- Decorative elements -->
+        <div class="absolute top-0 left-0 w-full h-full overflow-hidden">
+            <div class="absolute top-20 left-10 w-20 h-20 rounded-full bg-red-500 opacity-10 blur-xl"></div>
+            <div class="absolute bottom-10 right-20 w-32 h-32 rounded-full bg-blue-500 opacity-10 blur-xl"></div>
+            <div class="absolute top-1/3 right-1/4 w-16 h-16 rounded-full bg-purple-500 opacity-10 blur-xl"></div>
+        </div>
+        
+        <div class="title-container mb-12">
+            <h1 id="title" class="text-6xl md:text-8xl font-bold text-center demon-text slam-animation title-shadow">
+                AOH - BD Clan Level Tracker
+            </h1>
+        </div>
+        
+        <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-8 fade-in">
+            <button id="play-btn" class="btn-hover-effect demon-btn font-bold py-3 px-6 rounded-lg text-xl transition-all duration-300 transform hover:scale-105 pulse-animation">
+                <i class="fas fa-play mr-2"></i> Play
+            </button>
+            <button id="admin-btn" class="btn-hover-effect bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg text-xl transition-all duration-300 transform hover:scale-105 pulse-animation" style="animation-delay: 0.5s;">
+                <i class="fas fa-lock mr-2"></i> Admin Access
+            </button>
+        </div>
+    </div>
 
-<!-- Main Menu -->
-<div id="main-menu">
-  <div class="orbit-container">
-    <div class="orbiter"></div>
-    <div class="orbiter"></div>
-    <div class="orbiter"></div>
-    <div class="orbiter"></div>
-  </div>
-  <div id="menu-clan-logo">AGE OF HEROES</div>
-  <div class="ground-crack"></div>
-  <button id="play-btn" class="menu-btn">Play</button>
-  <button id="admin-login-btn" class="menu-btn">Admin Login</button>
-</div>
-
-<!-- Auth Container -->
-<div id="auth-container">
-  <div id="menu-clan-logo">AGE OF HEROES</div>
-  
-  <!-- Login Form -->
-  <form id="login-form" class="form-container">
-    <h2>Member Login</h2>
-    <div class="error-message" id="login-error"></div>
-    <label for="username">Roblox Username</label>
-    <input type="text" id="username" placeholder="Enter your Roblox username" required>
-    
-    <label for="password">Password</label>
-    <input type="password" id="password" placeholder="Enter your password" required>
-    
-    <div style="display: flex; align-items: center; margin: 1rem 0;">
-      <input type="checkbox" id="remember-me" style="width: auto; margin-right: 8px;">
-      <label for="remember-me" style="margin: 0;">Remember Me</label>
+    <!-- Login/Register Form -->
+    <div id="login-container" class="hidden fixed inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center z-50">
+        <div class="demon-bg p-8 rounded-lg shadow-xl w-full max-w-md relative">
+            <button onclick="hideLogin()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+            
+            <div id="login-form">
+                <h2 class="text-3xl font-bold mb-6 demon-text">Login</h2>
+                
+                <div class="mb-4">
+                    <label for="login-username" class="block mb-2">Username</label>
+                    <input type="text" id="login-username" class="w-full p-3 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:border-red-500">
+                </div>
+                
+                <div class="mb-6">
+                    <label for="login-password" class="block mb-2">Password</label>
+                    <input type="password" id="login-password" class="w-full p-3 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:border-red-500">
+                </div>
+                
+                <button onclick="login()" class="w-full demon-btn py-3 px-4 rounded-lg font-bold mb-4 transition duration-300 hover:bg-red-700">
+                    Login
+                </button>
+                
+                <p class="text-center text-gray-400">
+                    Don't have an account? 
+                    <a onclick="showRegisterForm()" class="demon-text cursor-pointer hover:underline">Register here</a>
+                </p>
+            </div>
+            
+            <div id="register-form" class="hidden">
+                <h2 class="text-3xl font-bold mb-6 demon-text">Register</h2>
+                
+                <div class="mb-4">
+                    <label for="reg-username" class="block mb-2">Username</label>
+                    <input type="text" id="reg-username" class="w-full p-3 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:border-red-500">
+                    <p id="username-error" class="text-red-500 text-sm mt-1 hidden"></p>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="reg-password" class="block mb-2">Password</label>
+                    <input type="password" id="reg-password" class="w-full p-3 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:border-red-500">
+                </div>
+                
+                <div class="mb-4">
+                    <label for="reg-confirm-password" class="block mb-2">Confirm Password</label>
+                    <input type="password" id="reg-confirm-password" class="w-full p-3 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:border-red-500">
+                    <p id="password-error" class="text-red-500 text-sm mt-1 hidden">Passwords don't match</p>
+                </div>
+                
+                <div class="mb-6">
+                    <label for="reg-level" class="block mb-2">Current Level</label>
+                    <input type="number" id="reg-level" class="w-full p-3 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:border-red-500">
+                    <p id="level-error" class="text-red-500 text-sm mt-1 hidden">Please enter your level</p>
+                </div>
+                
+                <button onclick="register()" class="w-full demon-btn py-3 px-4 rounded-lg font-bold mb-4 transition duration-300 hover:bg-red-700">
+                    Register
+                </button>
+                
+                <p class="text-center text-gray-400">
+                    Already have an account? 
+                    <a onclick="showLoginForm()" class="demon-text cursor-pointer hover:underline">Login here</a>
+                </p>
+            </div>
+        </div>
     </div>
     
-    <button type="submit">Login</button>
-    
-    <span class="nav-link" id="register-link">Don't have an account? Register</span>
-  </form>
-  
-  <!-- Register Form -->
-  <form id="register-form" class="form-container" style="display: none;">
-    <h2>Register</h2>
-    <div class="error-message" id="register-error"></div>
-    <div class="success-message" id="register-success"></div>
-    
-    <label for="reg-username">Roblox Username</label>
-    <input type="text" id="reg-username" placeholder="Enter your Roblox username" required>
-    
-    <label for="reg-password">Password</label>
-    <input type="password" id="reg-password" placeholder="Create a password" required>
-    
-    <label for="reg-confirm-password">Confirm Password</label>
-    <input type="password" id="reg-confirm-password" placeholder="Confirm your password" required>
-    
-    <label for="reg-level">Level (0 - 15000)</label>
-    <input type="number" id="reg-level" min="0" max="15000" value="0" required>
-    
-    <button type="submit">Register</button>
-    
-    <span class="nav-link" id="login-link">Already have an account? Login</span>
-  </form>
-</div>
-
-<!-- Profile Setup -->
-<div id="profile-setup">
-  <div id="menu-clan-logo">AGE OF HEROES</div>
-  
-  <form id="profile-form" class="form-container">
-    <h2>Complete Your Profile</h2>
-    <div class="error-message" id="profile-error"></div>
-    
-    <div class="profile-pic-upload">
-      <img id="profile-pic-preview" class="profile-pic-preview" alt="Profile Preview">
-      <label for="profile-pic-upload" class="upload-btn">Upload Profile Picture</label>
-      <input type="file" id="profile-pic-upload" accept="image/*" style="display: none;">
+    <!-- Admin Access Form -->
+    <div id="admin-access-container" class="hidden fixed inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center z-50">
+        <div class="demon-bg p-8 rounded-lg shadow-xl w-full max-w-md">
+            <button onclick="hideAdminAccess()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+            
+            <h2 class="text-3xl font-bold mb-6 demon-text">Admin Access</h2>
+            
+            <div class="mb-6">
+                <label for="admin-key" class="block mb-2">Enter Admin Key</label>
+                <input type="password" id="admin-key" class="w-full p-3 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:border-red-500">
+                <p id="admin-key-error" class="text-red-500 text-sm mt-1 hidden">Invalid admin key</p>
+            </div>
+            
+            <button onclick="verifyAdminKey()" class="w-full demon-btn py-3 px-4 rounded-lg font-bold transition duration-300 hover:bg-red-700">
+                Verify
+            </button>
+        </div>
     </div>
     
-    <label for="profile-name">Display Name</label>
-    <input type="text" id="profile-name" placeholder="Enter your display name" required>
+    <!-- Members Dashboard -->
+    <div id="members-dashboard" class="hidden min-h-screen p-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-3xl font-bold demon-text">Clan Members</h2>
+                
+                <div class="flex space-x-4">
+                    <button id="add-member-btn" class="demon-btn py-2 px-4 rounded-lg font-bold transition duration-300 hover:bg-red-700 hidden">
+                        <i class="fas fa-plus mr-2"></i> Add Member
+                    </button>
+                    
+                    <button onclick="logout()" class="bg-gray-700 hover:bg-gray-600 py-2 px-4 rounded-lg font-bold transition duration-300">
+                        <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                    </button>
+                </div>
+            </div>
+            
+            <div class="mb-6">
+                <div class="flex items-center space-x-4">
+                    <input type="password" id="admin-key-input" placeholder="Enter admin key" class="p-2 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:border-red-500">
+                    <button onclick="verifyDashboardAdminKey()" class="demon-btn py-2 px-4 rounded-lg font-bold transition duration-300 hover:bg-red-700">
+                        Verify Admin
+                    </button>
+                </div>
+            </div>
+            
+            <div id="members-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Members will be rendered here -->
+            </div>
+        </div>
+    </div>
     
-    <label for="profile-type">Piece Type</label>
-    <select id="profile-type" required>
-      <option value="knight">Knight</option>
-      <option value="demon">Demon</option>
-      <option value="angel">Angel</option>
-      <option value="king">King</option>
-      <option value="queen">Queen</option>
-      <option value="nice_guy">Nice Guy</option>
-    </select>
+    <!-- Add Member Modal -->
+    <div id="add-member-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center z-50">
+        <div class="demon-bg p-8 rounded-lg shadow-xl w-full max-w-md">
+            <button onclick="hideAddMemberModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+            
+            <h2 class="text-3xl font-bold mb-6 demon-text">Add New Member</h2>
+            
+            <div class="mb-4">
+                <label for="new-member-username" class="block mb-2">Username</label>
+                <input type="text" id="new-member-username" class="w-full p-3 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:border-red-500">
+                <p id="new-username-error" class="text-red-500 text-sm mt-1 hidden"></p>
+            </div>
+            
+            <div class="mb-6">
+                <label for="new-member-level" class="block mb-2">Level</label>
+                <input type="number" id="new-member-level" class="w-full p-3 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:border-red-500">
+            </div>
+            
+            <button onclick="addNewMember()" class="w-full demon-btn py-3 px-4 rounded-lg font-bold transition duration-300 hover:bg-red-700">
+                Add Member
+            </button>
+        </div>
+    </div>
     
-    <button type="submit">Complete Setup</button>
-  </form>
-</div>
-
-<!-- Admin Key Form -->
-<div id="admin-key-form">
-  <h2>Admin Access</h2>
-  <p>Enter the admin key to access management features</p>
-  <div class="error-message" id="admin-error"></div>
-  <input type="password" id="admin-key" placeholder="Enter admin key" required>
-  <button type="submit">Verify Key</button>
-  <span id="close-admin-form">Cancel</span>
-</div>
-
-<!-- App -->
-<div id="appContainer ">
-  <button id="admin-access-btn">Admin Access</button>
-  <div id="clan-logo">AGE OF HEROES</div>
-  <button id="add-member-btn" title="Add Member">+</button>
-  <form id="add-member-form">
-    <label for="nameInput">Roblox Username</label>
-    <input id="nameInput" type="text" placeholder="Player's Roblox username" required />
+    <!-- Edit Member Modal -->
+    <div id="edit-member-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center z-50">
+        <div class="demon-bg p-8 rounded-lg shadow-xl w-full max-w-md">
+            <button onclick="hideEditMemberModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+            
+            <h2 class="text-3xl font-bold mb-6 demon-text">Edit Member</h2>
+            
+            <div class="mb-4">
+                <label for="edit-member-username" class="block mb-2">Username</label>
+                <input type="text" id="edit-member-username" class="w-full p-3 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:border-red-500" disabled>
+            </div>
+            
+            <div class="mb-6">
+                <label for="edit-member-level" class="block mb-2">Level</label>
+                <input type="number" id="edit-member-level" class="w-full p-3 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:border-red-500">
+            </div>
+            
+            <div class="flex space-x-4">
+                <button onclick="updateMemberLevel()" class="flex-1 demon-btn py-3 px-4 rounded-lg font-bold transition duration-300 hover:bg-red-700">
+                    Update
+                </button>
+                <button onclick="confirmDeleteMember()" class="flex-1 bg-gray-700 hover:bg-gray-600 py-3 px-4 rounded-lg font-bold transition duration-300">
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
     
-    <label for="levelInput">Level (0 - 15000)</label>
-    <input id="levelInput" type="number" min="0" max="15000" value="0" required />
-    
-    <label for="typeSelect">Piece Type</label>
-    <select id="typeSelect" required>
-      <option value="knight">Knight</option>
-      <option value="demon">Demon</option>
-      <option value="angel">Angel</option>
-      <option value="king">King</option>
-      <option value="queen">Queen</option>
-      <option value="nice_guy">Nice Guy</option>
-    </select>
-    
-    <button type="submit">Add Member</button>
-  </form>
+    <!-- Confirmation Modal -->
+    <div id="confirm-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center z-50">
+        <div class="demon-bg p-8 rounded-lg shadow-xl w-full max-w-md">
+            <h2 id="confirm-title" class="text-3xl font-bold mb-4 demon-text"></h2>
+            <p id="confirm-message" class="mb-6"></p>
+            
+            <div class="flex space-x-4">
+                <button onclick="executeConfirmedAction()" class="flex-1 demon-btn py-3 px-4 rounded-lg font-bold transition duration-300 hover:bg-red-700">
+                    Confirm
+                </button>
+                <button onclick="hideConfirmModal()" class="flex-1 bg-gray-700 hover:bg-gray-600 py-3 px-4 rounded-lg font-bold transition duration-300">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
 
-  <div id="cardsContainer"></div>
-</div>
-
-<script>
-  // Firebase configuration
-  const firebaseConfig = {
-    apiKey: "AIzaSyDkBj4UVirnVIGSfYx_anVy4VtZPNx3cYU",
-    authDomain: "ageofheroestracker.firebaseapp.com",
-    databaseURL: "https://ageofheroestracker.firebaseio.com",
-    projectId: "ageofheroestracker",
-    storageBucket: "ageofheroestracker.appspot.com",
-    messagingSenderId: "786749448583",
-    appId: "1:786749448583:web:01ccb84f3a24a0f9a73322"
-  };
-
-  // Initialize Firebase
-  const app = firebase.initializeApp(firebaseConfig);
-  const database = firebase.database();
-  const auth = firebase.auth();
-  const storage = firebase.storage();
-
-  // Database references
-  const membersRef = database.ref('public/members');
-  const profilesRef = database.ref('public/profiles');
-
-  // Constants
-  const MAX_LEVEL = 15000;
-  const PIECE_TYPES = ['knight', 'demon', 'angel', 'king', 'queen', 'nice_guy'];
-
-  // DOM Elements
-  const mainMenu = document.getElementById('main-menu');
-  const playBtn = document.getElementById('play-btn');
-  const adminLoginBtn = document.getElementById('admin-login-btn');
-  const authContainer = document.getElementById('auth-container');
-  const loginForm = document.getElementById('login-form');
-  const registerForm = document.getElementById('register-form');
-  const registerLink = document.getElementById('register-link');
-  const loginLink = document.getElementById('login-link');
-  const profileSetup = document.getElementById('profile-setup');
-  const profileForm = document.getElementById('profile-form');
-  const profilePicUpload = document.getElementById('profile-pic-upload');
-  const profilePicPreview = document.getElementById('profile-pic-preview');
-  const adminKeyForm = document.getElementById('admin-key-form');
-  const closeAdminForm = document.getElementById('close-admin-form');
-  const appContainer = document.getElementById('app');
-  const adminAccessBtn = document.getElementById('admin-access-btn');
-  const cardsContainer = document.getElementById('cardsContainer');
-  const addMemberBtn = document.getElementById('add-member-btn');
-  const addMemberForm = document.getElementById('add-member-form');
-  const nameInput = document.getElementById('nameInput');
-  const levelInput = document.getElementById('levelInput');
-  const typeSelect = document.getElementById('typeSelect');
-
-  // State variables
-  let members = [];
-  let currentUser = null;
-  let isAdmin = false;
-  let unsubscribeMembers = null;
-
-  // Initialize the app
-  async function init() {
-    try {
-      setupEventListeners();
-      checkAuthState();
-      
-      // Initial animations
-      setTimeout(() => {
-        createGroundSmash(mainMenu);
-        setTimeout(createOrbitingObjects, 1000);
-      }, 100);
-    } catch (error) {
-      console.error("Initialization error:", error);
-      mainMenu.style.display = 'flex';
-    }
-  }
-
-  // Authentication functions
-  async function checkAuthState() {
-    auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        currentUser = user;
+    <script>
+        // Database simulation using localStorage
+        const STORAGE_KEY = "aoh_bd_clan_data";
         
-        // Check admin status
-        try {
-          const token = await user.getIdTokenResult();
-          isAdmin = token.claims.isAdmin || false;
-        } catch (error) {
-          console.error("Error checking admin status:", error);
-          isAdmin = false;
+        // Initialize data if not exists
+        function initializeData() {
+            if (!localStorage.getItem(STORAGE_KEY)) {
+                const defaultMembers = [
+                    { username: "Dan", level: 100, password: "dan123" },
+                    { username: "Ban", level: 95, password: "ban123" },
+                    { username: "Levi", level: 90, password: "levi123" },
+                    { username: "Kyle", level: 85, password: "kyle123" },
+                    { username: "Zen", level: 50, password: "zen123" }
+                ];
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                    members: defaultMembers,
+                    adminKey: "ZenIsTrashBDFR"
+                }));
+            }
         }
         
-        // Check if profile exists
-        try {
-          const profile = await getProfile(user.uid);
-          if (profile) {
-            showApp();
-          } else {
-            showProfileSetup();
-          }
-        } catch (error) {
-          console.error("Error checking profile:", error);
-          showProfileSetup();
+        // Get data from localStorage
+        function getData() {
+            return JSON.parse(localStorage.getItem(STORAGE_KEY));
         }
-      } else {
-        showMainMenu();
-      }
-    });
-  }
+        
+        // Save data to localStorage
+        function saveData(data) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
+        
+        // Get members array
+        function getMembers() {
+            const data = getData();
+            return data.members;
+        }
+        
+        // Get admin key
+        function getAdminKey() {
+            const data = getData();
+            return data.adminKey;
+        }
+        
+        // Update members array
+        function updateMembers(updatedMembers) {
+            const data = getData();
+            data.members = updatedMembers;
+            saveData(data);
+        }
+        
+        // Initialize data on page load
+        initializeData();
+        
+        const ADMIN_KEY = getAdminKey();
+        let isAdmin = false;
+        let currentUser = null;
+        let currentAction = null;
+        let currentMember = null;
 
-  async function login(email, password) {
-    try {
-      await auth.signInWithEmailAndPassword(email, password);
-    } catch (error) {
-      console.error("Login error:", error);
-      throw error;
-    }
-  }
+        // DOM Elements
+        const mainMenu = document.getElementById('main-menu');
+        const loginContainer = document.getElementById('login-container');
+        const adminAccessContainer = document.getElementById('admin-access-container');
+        const membersDashboard = document.getElementById('members-dashboard');
+        const membersGrid = document.getElementById('members-grid');
+        const addMemberBtn = document.getElementById('add-member-btn');
+        const addMemberModal = document.getElementById('add-member-modal');
+        const editMemberModal = document.getElementById('edit-member-modal');
+        const confirmModal = document.getElementById('confirm-modal');
+        const playBtn = document.getElementById('play-btn');
+        const adminBtn = document.getElementById('admin-btn');
 
-  async function register(email, password, robloxUsername) {
-    try {
-      const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-      await createProfile(userCredential.user.uid, {
-        robloxUsername,
-        displayName: robloxUsername,
-        pieceType: 'knight'
-      });
-      return userCredential.user;
-    } catch (error) {
-      console.error("Registration error:", error);
-      throw error;
-    }
-  }
+        // Event Listeners
+        playBtn.addEventListener('click', showLogin);
+        adminBtn.addEventListener('click', showAdminAccess);
 
-  async function logout() {
-    try {
-      await auth.signOut();
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
-  }
+        // Main Menu Functions
+        function showLogin() {
+            // Add click effect
+            const btn = event.target.closest('button');
+            btn.classList.add('glow-animation');
+            setTimeout(() => btn.classList.remove('glow-animation'), 2000);
+            
+            loginContainer.classList.remove('hidden');
+            document.getElementById('login-form').classList.remove('hidden');
+            document.getElementById('register-form').classList.add('hidden');
+        }
 
-  // Profile functions
-  async function createProfile(userId, profileData) {
-    await profilesRef.child(userId).set({
-      ...profileData,
-      createdAt: firebase.database.ServerValue.TIMESTAMP
-    });
-  }
+        function hideLogin() {
+            loginContainer.classList.add('hidden');
+            resetLoginForm();
+        }
 
-  async function getProfile(userId) {
-    const snapshot = await profilesRef.child(userId).once('value');
-    return snapshot.val();
-  }
+        function showAdminAccess() {
+            // Add click effect
+            const btn = event.target.closest('button');
+            btn.classList.add('glow-animation');
+            setTimeout(() => btn.classList.remove('glow-animation'), 2000);
+            
+            adminAccessContainer.classList.remove('hidden');
+        }
 
-  async function updateProfile(profileData) {
-    await profilesRef.child(currentUser.uid).update({
-      ...profileData,
-      updatedAt: firebase.database.ServerValue.TIMESTAMP
-    });
-  }
+        function hideAdminAccess() {
+            adminAccessContainer.classList.add('hidden');
+            document.getElementById('admin-key').value = '';
+            document.getElementById('admin-key-error').classList.add('hidden');
+        }
 
-  async function uploadProfilePicture(file) {
-    const storageRef = storage.ref(`profile_pictures/${currentUser.uid}`);
-    const snapshot = await storageRef.put(file);
-    return await snapshot.ref.getDownloadURL();
-  }
+        // Login/Register Functions
+        function showRegisterForm() {
+            document.getElementById('login-form').classList.add('hidden');
+            document.getElementById('register-form').classList.remove('hidden');
+            resetRegisterForm();
+        }
 
-  // Member functions
-  async function addMember(memberData) {
-    if (!isAdmin) throw new Error("Admin access required");
-    
-    const memberId = memberData.id || Date.now().toString();
-    
-    await membersRef.child(memberId).set({
-      id: memberId,
-      name: memberData.name,
-      level: memberData.level,
-      type: memberData.type,
-      userId: currentUser.uid,
-      createdAt: firebase.database.ServerValue.TIMESTAMP
-    });
-  }
+        function showLoginForm() {
+            document.getElementById('login-form').classList.remove('hidden');
+            document.getElementById('register-form').classList.add('hidden');
+            resetRegisterForm();
+        }
 
-  async function removeMember(memberId) {
-    if (!isAdmin) throw new Error("Admin access required");
-    await membersRef.child(memberId).remove();
-  }
+        function resetLoginForm() {
+            document.getElementById('login-username').value = '';
+            document.getElementById('login-password').value = '';
+        }
 
-  function subscribeToMembers(callback) {
-    unsubscribeMembers = membersRef.on('value', (snapshot) => {
-      const membersList = [];
-      snapshot.forEach((childSnapshot) => {
-        membersList.push(childSnapshot.val());
-      });
-      callback(membersList);
-    });
-  }
+        function resetRegisterForm() {
+            document.getElementById('reg-username').value = '';
+            document.getElementById('reg-password').value = '';
+            document.getElementById('reg-confirm-password').value = '';
+            document.getElementById('reg-level').value = '';
+            document.getElementById('username-error').classList.add('hidden');
+            document.getElementById('password-error').classList.add('hidden');
+            document.getElementById('level-error').classList.add('hidden');
+        }
 
-  // Admin functions
-  async function verifyAdminKey(key) {
-    try {
-      // In a real app, this would call a Cloud Function
-      // For this example, we'll simulate it
-      const isValid = key === 'ZenIsTrashFr'; // Replace with your actual key
-      if (isValid && currentUser) {
-        // In a real app, you would call a Cloud Function to set custom claims
-        isAdmin = true;
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error("Admin verification error:", error);
-      return false;
-    }
-  }
+        function login() {
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value;
+            
+            const members = getMembers();
+            const member = members.find(m => m.username.toLowerCase() === username.toLowerCase());
+            
+            if (member && member.password === password) {
+                currentUser = member;
+                showMembersDashboard();
+            } else {
+                alert("Invalid username or password");
+            }
+        }
 
-  // UI Functions
-  function showMainMenu() {
-    mainMenu.style.display = 'flex';
-    authContainer.style.display = 'none';
-    profileSetup.style.display = 'none';
-    app.style.display = 'none';
-    
-    if (unsubscribeMembers) {
-      unsubscribeMembers();
-      unsubscribeMembers = null;
-    }
-  }
+        function register() {
+            const username = document.getElementById('reg-username').value.trim();
+            const password = document.getElementById('reg-password').value;
+            const confirmPassword = document.getElementById('reg-confirm-password').value;
+            const level = document.getElementById('reg-level').value;
+            
+            // Validate inputs
+            let isValid = true;
+            
+            // Check if username exists
+            const members = getMembers();
+            const usernameExists = members.some(m => m.username.toLowerCase() === username.toLowerCase());
+            if (usernameExists) {
+                document.getElementById('username-error').textContent = "Username already exists. Contact Dan, Ban, Levi, or Kyle.";
+                document.getElementById('username-error').classList.remove('hidden');
+                document.getElementById('reg-username').classList.add('shake');
+                setTimeout(() => document.getElementById('reg-username').classList.remove('shake'), 500);
+                isValid = false;
+            } else {
+                document.getElementById('username-error').classList.add('hidden');
+            }
+            
+            // Check password match
+            if (password !== confirmPassword) {
+                document.getElementById('password-error').classList.remove('hidden');
+                document.getElementById('reg-confirm-password').classList.add('shake');
+                setTimeout(() => document.getElementById('reg-confirm-password').classList.remove('shake'), 500);
+                isValid = false;
+            } else {
+                document.getElementById('password-error').classList.add('hidden');
+            }
+            
+            // Check level
+            if (!level) {
+                document.getElementById('level-error').classList.remove('hidden');
+                document.getElementById('reg-level').classList.add('shake');
+                setTimeout(() => document.getElementById('reg-level').classList.remove('shake'), 500);
+                isValid = false;
+            } else {
+                document.getElementById('level-error').classList.add('hidden');
+            }
+            
+            if (!isValid) return;
+            
+            // Add new member
+            const newMember = {
+                username: username,
+                level: parseInt(level),
+                password: password
+            };
+            
+            const updatedMembers = [...members, newMember];
+            updateMembers(updatedMembers);
+            
+            alert("Registration successful! You can now login.");
+            showLoginForm();
+        }
 
-  function showAuthContainer() {
-    mainMenu.style.display = 'none';
-    authContainer.style.display = 'flex';
-    loginForm.style.display = 'block';
-    registerForm.style.display = 'none';
-  }
+        // Admin Functions
+        function verifyAdminKey() {
+            const key = document.getElementById('admin-key').value;
+            
+            if (key === ADMIN_KEY) {
+                isAdmin = true;
+                hideAdminAccess();
+                showMembersDashboard();
+            } else {
+                document.getElementById('admin-key-error').classList.remove('hidden');
+                document.getElementById('admin-key').classList.add('shake');
+                setTimeout(() => document.getElementById('admin-key').classList.remove('shake'), 500);
+            }
+        }
 
-  function showProfileSetup() {
-    authContainer.style.display = 'none';
-    profileSetup.style.display = 'flex';
-  }
+        function verifyDashboardAdminKey() {
+            const key = document.getElementById('admin-key-input').value;
+            
+            if (key === ADMIN_KEY) {
+                isAdmin = true;
+                document.getElementById('admin-key-input').value = '';
+                updateAdminUI();
+            } else {
+                document.getElementById('admin-key-input').classList.add('shake');
+                setTimeout(() => document.getElementById('admin-key-input').classList.remove('shake'), 500);
+            }
+        }
 
-  function showApp() {
-    profileSetup.style.display = 'none';
-    authContainer.style.display = 'none';
-    appContainer .style.display = 'block';
-    
-    adminAccessBtn.style.display = isAdmin ? 'none' : 'block';
-    addMemberBtn.style.display = isAdmin ? 'block' : 'none';
-    
-    // Start listening for member updates
-    subscribeToMembers((membersList) => {
-      members = membersList;
-      renderCards();
-    });
-    
-    createGroundSmash(appContainer );
-  }
+        // Members Dashboard Functions
+        function showMembersDashboard() {
+            mainMenu.classList.add('hidden');
+            loginContainer.classList.add('hidden');
+            adminAccessContainer.classList.add('hidden');
+            membersDashboard.classList.remove('hidden');
+            
+            updateAdminUI();
+            renderMembersGrid();
+        }
 
-  function renderCards() {
-    cardsContainer.innerHTML = '';
-    
-    members.forEach(member => {
-      const card = document.createElement('div');
-      card.className = 'flip-card';
-      card.title = member.name;
-      
-      card.innerHTML = `
-        <div class="flip-card-inner">
-          <div class="flip-card-front">
-            <div class="title-text">${member.name}</div>
-            <div class="level-text">Level: ${member.level}</div>
-          </div>
-          <div class="flip-card-back">
-            <div>${member.name}</div>
-            <div class="level-text">Level: ${member.level}</div>
-            ${isAdmin ? `<button class="remove-btn" data-id="${member.id}">Remove</button>` : ''}
-          </div>
-        </div>`;
-      
-      cardsContainer.appendChild(card);
-    });
-    
-    // Add event listeners to remove buttons
-    if (isAdmin) {
-      document.querySelectorAll('.remove-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          removeMember(e.target.dataset.id).catch(error => {
-            showError('admin-error', error.message);
-          });
+        function updateAdminUI() {
+            if (isAdmin) {
+                addMemberBtn.classList.remove('hidden');
+                
+                // Add edit buttons to all member cards
+                const memberCards = document.querySelectorAll('.member-card');
+                memberCards.forEach(card => {
+                    if (!card.querySelector('.edit-btn')) {
+                        const editBtn = document.createElement('button');
+                        editBtn.className = 'edit-btn absolute top-2 right-2 bg-yellow-600 hover:bg-yellow-700 text-white p-1 rounded-full transition duration-300';
+                        editBtn.innerHTML = '<i class="fas fa-edit text-xs"></i>';
+                        editBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            const username = card.getAttribute('data-username');
+                            showEditMemberModal(username);
+                        };
+                        card.appendChild(editBtn);
+                    }
+                });
+            } else {
+                addMemberBtn.classList.add('hidden');
+                
+                // Remove edit buttons from member cards
+                const editButtons = document.querySelectorAll('.edit-btn');
+                editButtons.forEach(btn => btn.remove());
+            }
+        }
+
+        function renderMembersGrid() {
+            membersGrid.innerHTML = '';
+            
+            // Sort members by level (descending)
+            const members = getMembers();
+            const sortedMembers = [...members].sort((a, b) => b.level - a.level);
+            
+            sortedMembers.forEach(member => {
+                const memberCard = document.createElement('div');
+                memberCard.className = 'member-card demon-card p-6 rounded-lg shadow-lg relative cursor-pointer transition-all duration-300';
+                memberCard.setAttribute('data-username', member.username);
+                
+                // Add hover effect for admin to indicate clickable
+                if (isAdmin) {
+                    memberCard.classList.add('hover:bg-gray-700');
+                    memberCard.onclick = () => showEditMemberModal(member.username);
+                }
+                
+                // Determine rank color based on level
+                let rankColor = 'text-gray-400';
+                if (member.level >= 90) rankColor = 'text-red-500';
+                else if (member.level >= 70) rankColor = 'text-purple-500';
+                else if (member.level >= 50) rankColor = 'text-blue-500';
+                else if (member.level >= 30) rankColor = 'text-green-500';
+                
+                memberCard.innerHTML = `
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center text-xl font-bold ${rankColor}">
+                            ${member.level}
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-xl font-bold">${member.username}</h3>
+                            <p class="text-gray-400">Level ${member.level}</p>
+                        </div>
+                    </div>
+                    <div class="w-full bg-gray-700 rounded-full h-2.5">
+                        <div class="bg-red-500 h-2.5 rounded-full" style="width: ${Math.min(member.level, 100)}%"></div>
+                    </div>
+                `;
+                
+                membersGrid.appendChild(memberCard);
+            });
+        }
+
+        // Member Management Functions
+        function showAddMemberModal() {
+            addMemberModal.classList.remove('hidden');
+            document.getElementById('new-member-username').value = '';
+            document.getElementById('new-member-level').value = '';
+            document.getElementById('new-username-error').classList.add('hidden');
+        }
+
+        function hideAddMemberModal() {
+            addMemberModal.classList.add('hidden');
+        }
+
+        function showEditMemberModal(username) {
+            const members = getMembers();
+            const member = members.find(m => m.username === username);
+            if (!member) return;
+            
+            currentMember = member;
+            
+            document.getElementById('edit-member-username').value = member.username;
+            document.getElementById('edit-member-level').value = member.level;
+            editMemberModal.classList.remove('hidden');
+        }
+
+        function hideEditMemberModal() {
+            editMemberModal.classList.add('hidden');
+            currentMember = null;
+        }
+
+        function addNewMember() {
+            const username = document.getElementById('new-member-username').value.trim();
+            const level = parseInt(document.getElementById('new-member-level').value);
+            
+            if (!username) {
+                document.getElementById('new-username-error').textContent = "Username is required";
+                document.getElementById('new-username-error').classList.remove('hidden');
+                document.getElementById('new-member-username').classList.add('shake');
+                setTimeout(() => document.getElementById('new-member-username').classList.remove('shake'), 500);
+                return;
+            }
+            
+            // Check if username exists
+            const members = getMembers();
+            const usernameExists = members.some(m => m.username.toLowerCase() === username.toLowerCase());
+            if (usernameExists) {
+                document.getElementById('new-username-error').textContent = "Username already exists";
+                document.getElementById('new-username-error').classList.remove('hidden');
+                document.getElementById('new-member-username').classList.add('shake');
+                setTimeout(() => document.getElementById('new-member-username').classList.remove('shake'), 500);
+                return;
+            }
+            
+            if (!level || level < 1) {
+                alert("Please enter a valid level");
+                return;
+            }
+            
+            // Add new member with default password
+            const newMember = {
+                username: username,
+                level: level,
+                password: "default123" // In a real app, you'd generate a temp password or have admin set one
+            };
+            
+            const updatedMembers = [...members, newMember];
+            updateMembers(updatedMembers);
+            
+            hideAddMemberModal();
+            renderMembersGrid();
+            updateAdminUI();
+        }
+
+        function updateMemberLevel() {
+            const newLevel = parseInt(document.getElementById('edit-member-level').value);
+            
+            if (!newLevel || newLevel < 1) {
+                alert("Please enter a valid level");
+                return;
+            }
+            
+            const members = getMembers();
+            const memberIndex = members.findIndex(m => m.username === currentMember.username);
+            if (memberIndex !== -1) {
+                const updatedMembers = [...members];
+                updatedMembers[memberIndex].level = newLevel;
+                updateMembers(updatedMembers);
+                
+                hideEditMemberModal();
+                renderMembersGrid();
+            }
+        }
+
+        function confirmDeleteMember() {
+            currentAction = 'delete';
+            document.getElementById('confirm-title').textContent = "Delete Member";
+            document.getElementById('confirm-message').textContent = `Are you sure you want to delete ${currentMember.username}? This action cannot be undone.`;
+            confirmModal.classList.remove('hidden');
+        }
+
+        function hideConfirmModal() {
+            confirmModal.classList.add('hidden');
+            currentAction = null;
+        }
+
+        function executeConfirmedAction() {
+            if (currentAction === 'delete' && currentMember) {
+                const members = getMembers();
+                const memberIndex = members.findIndex(m => m.username === currentMember.username);
+                if (memberIndex !== -1) {
+                    const updatedMembers = [...members];
+                    updatedMembers.splice(memberIndex, 1);
+                    updateMembers(updatedMembers);
+                    
+                    hideEditMemberModal();
+                    hideConfirmModal();
+                    renderMembersGrid();
+                }
+            }
+            
+            currentAction = null;
+            currentMember = null;
+        }
+
+        function logout() {
+            isAdmin = false;
+            currentUser = null;
+            membersDashboard.classList.add('hidden');
+            mainMenu.classList.remove('hidden');
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            // Add button event listeners
+            addMemberBtn.addEventListener('click', showAddMemberModal);
         });
-      });
-    }
-  }
-
-  // Animation functions
-  function createGroundSmash(container) {
-    const smash = document.createElement('div');
-    smash.className = 'ground-smash';
-    smash.innerHTML = '<div class="ground-smash-effect"></div>';
-    container.appendChild(smash);
-    
-    setTimeout(() => {
-      smash.remove();
-    }, 1000);
-  }
-
-  function createOrbitingObjects() {
-    const orbitContainer = document.querySelector('.orbit-container');
-    orbitContainer.style.opacity = '1';
-    
-    const orbiters = document.querySelectorAll('.orbiter');
-    orbiters.forEach((orbiter, index) => {
-      const randomSpeed = 8 + Math.random() * 4;
-      const randomSize = 10 + Math.random() * 10;
-      orbiter.style.animationDuration = `${randomSpeed}s`;
-      orbiter.style.width = `${randomSize}px`;
-      orbiter.style.height = `${randomSize}px`;
-    });
-  }
-
-  // Event Handlers
-  async function handleLogin(e) {
-    e.preventDefault();
-    const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value;
-    const email = `${username}@ageofheroes.com`;
-    
-    try {
-      await login(email, password);
-    } catch (error) {
-      showError('login-error', error.message);
-    }
-  }
-
-  async function handleRegister(e) {
-    e.preventDefault();
-    const username = document.getElementById('reg-username').value.trim();
-    const password = document.getElementById('reg-password').value;
-    const confirmPassword = document.getElementById('reg-confirm-password').value;
-    const level = parseInt(document.getElementById('reg-level').value);
-    const email = `${username}@ageofheroes.com`;
-    
-    if (password !== confirmPassword) {
-      showError('register-error', 'Passwords do not match');
-      return;
-    }
-    
-    try {
-      await register(email, password, username);
-      showSuccess('register-success', 'Registration successful! Complete your profile.');
-      setTimeout(showProfileSetup, 1500);
-    } catch (error) {
-      showError('register-error', error.message);
-    }
-  }
-
-  async function handleProfileSetup(e) {
-    e.preventDefault();
-    const displayName = document.getElementById('profile-name').value.trim();
-    const pieceType = document.getElementById('profile-type').value;
-    const file = document.getElementById('profile-pic-upload').files[0];
-    
-    try {
-      let profilePicUrl = '';
-      if (file) {
-        profilePicUrl = await uploadProfilePicture(file);
-      }
-      
-      await updateProfile({
-        displayName,
-        pieceType,
-        ...(profilePicUrl && { profilePic: profilePicUrl })
-      });
-      
-      showApp();
-    } catch (error) {
-      showError('profile-error', error.message);
-    }
-  }
-
-  async function handleAddMember(e) {
-    e.preventDefault();
-    const name = nameInput.value.trim();
-    const level = parseInt(levelInput.value);
-    const type = typeSelect.value;
-    
-    try {
-      await addMember({ name, level, type });
-      addMemberForm.reset();
-      addMemberForm.style.display = 'none';
-      createGroundSmash(cardsContainer);
-    } catch (error) {
-      showError('admin-error', error.message);
-    }
-  }
-
-  async function handleAdminKeySubmit(e) {
-    e.preventDefault();
-    const key = document.getElementById('admin-key').value;
-    
-    try {
-      const isValid = await verifyAdminKey(key);
-      if (isValid) {
-        isAdmin = true;
-        hideAdminKeyForm();
-        updateAdminFeatures();
-        showSuccessMessage('Admin access granted!');
-      } else {
-        throw new Error('Invalid admin key');
-      }
-    } catch (error) {
-      showError('admin-error', error.message);
-      adminKeyForm.classList.add('shake');
-      setTimeout(() => adminKeyForm.classList.remove('shake'), 500);
-    }
-  }
-
-  function hideAdminKeyForm() {
-    adminKeyForm.style.display = 'none';
-    document.getElementById('admin-key').value = '';
-    document.getElementById('admin-error').style.display = 'none';
-  }
-
-  function updateAdminFeatures() {
-    addMemberBtn.style.display = isAdmin ? 'block' : 'none';
-    adminAccessBtn.style.display = isAdmin ? 'none' : 'block';
-    renderCards();
-  }
-
-  function showSuccessMessage(message) {
-    const element = document.createElement('div');
-    element.className = 'success-message';
-    element.textContent = message;
-    element.style.position = 'fixed';
-    element.style.top = '20px';
-    element.style.left = '50%';
-    element.style.transform = 'translateX(-50%)';
-    element.style.zIndex = '1000';
-    document.body.appendChild(element);
-    
-    setTimeout(() => {
-      element.remove();
-    }, 3000);
-  }
-
-  function showError(elementId, message) {
-    const element = document.getElementById(elementId);
-    element.textContent = message;
-    element.style.display = 'block';
-    setTimeout(() => {
-      element.style.display = 'none';
-    }, 3000);
-  }
-
-  function showSuccess(elementId, message) {
-    const element = document.getElementById(elementId);
-    element.textContent = message;
-    element.style.display = 'block';
-    setTimeout(() => {
-      element.style.display = 'none';
-    }, 3000);
-  }
-
-  function toggleAuthForms(form) {
-    if (form === 'register') {
-      loginForm.style.display = 'none';
-      registerForm.style.display = 'block';
-    } else {
-      loginForm.style.display = 'block';
-      registerForm.style.display = 'none';
-    }
-  }
-
-  function toggleAddMemberForm() {
-    addMemberForm.style.display = addMemberForm.style.display === 'block' ? 'none' : 'block';
-  }
-
-function setupEventListeners() {
-  console.log('Setting up event listeners...');
-  
-  // Verify buttons exist
-  console.log('Play button:', playBtn);
-  console.log('Admin button:', adminLoginBtn);
-
-  // Main menu buttons
-  playBtn.addEventListener('click', function(e) {
-    e.preventDefault();
-    console.log('Play button clicked');
-    showAuthContainer();
-    
-    // Ripple effect
-    const x = e.clientX - e.target.getBoundingClientRect().left;
-    const y = e.clientY - e.target.getBoundingClientRect().top;
-    
-    const ripple = document.createElement('span');
-    ripple.className = 'ripple';
-    ripple.style.left = `${x}px`;
-    ripple.style.top = `${y}px`;
-    
-    this.appendChild(ripple);
-    
-    setTimeout(() => {
-      ripple.remove();
-    }, 1000);
-  });
-
-  adminLoginBtn.addEventListener('click', function(e) {
-    e.preventDefault();
-    console.log('Admin button clicked');
-    isAdmin = false;
-    adminKeyForm.style.display = 'block';
-    document.getElementById('admin-key').focus();
-  });
-    
-    // Auth forms
-    loginForm.addEventListener('submit', handleLogin);
-    registerForm.addEventListener('submit', handleRegister);
-    registerLink.addEventListener('click', () => toggleAuthForms('register'));
-    loginLink.addEventListener('click', () => toggleAuthForms('login'));
-    
-    // Profile setup
-    profileForm.addEventListener('submit', handleProfileSetup);
-    profilePicUpload.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          profilePicPreview.src = event.target.result;
-          profilePicPreview.style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-    
-    // Admin key form
-    adminKeyForm.addEventListener('submit', handleAdminKeySubmit);
-    closeAdminForm.addEventListener('click', hideAdminKeyForm);
-    
-    // App functionality
-    adminAccessBtn.addEventListener('click', () => {
-      isAdmin = false;
-      adminKeyForm.style.display = 'block';
-    });
-    addMemberBtn.addEventListener('click', toggleAddMemberForm);
-    addMemberForm.addEventListener('submit', handleAddMember);
-    
-    // Card flip for mobile
-    document.addEventListener('click', (e) => {
-      if (!window.matchMedia('(hover: hover)').matches) {
-        const flipCard = e.target.closest('.flip-card');
-        if (flipCard) {
-          flipCard.classList.toggle('flipped');
-        }
-      }
-    });
-
-    // Ripple effect for play button
-    playBtn.addEventListener('click', function(e) {
-      const x = e.clientX - e.target.getBoundingClientRect().left;
-      const y = e.clientY - e.target.getBoundingClientRect().top;
-      
-      const ripple = document.createElement('span');
-      ripple.className = 'ripple';
-      ripple.style.left = `${x}px`;
-      ripple.style.top = `${y}px`;
-      
-      this.appendChild(ripple);
-      
-      setTimeout(() => {
-        ripple.remove();
-      }, 1000);
-    });
-  }
-
-  // Initialize the app
-  document.addEventListener('DOMContentLoaded', init);
-</script>
+    </script>
 </body>
 </html>
