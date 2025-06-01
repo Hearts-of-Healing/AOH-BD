@@ -418,65 +418,83 @@
         </div>
     </div>
 
+    <!-- Firebase Integration -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
     <script>
-        // Database simulation using localStorage
-        const STORAGE_KEY = "aoh_bd_clan_data";
-        
-        // Initialize data if not exists
+        // Firebase configuration (replace with your actual config)
+       const firebaseConfig = {
+          apiKey: "AIzaSyBDgadn_l0VLJmgCPzziGbwbXYaIfhn0vQ",
+          authDomain: "aoh-bd-clan.firebaseapp.com",
+          databaseURL: "https://aoh-bd-clan-default-rtdb.firebaseio.com/", // Add this line
+          projectId: "aoh-bd-clan",
+          storageBucket: "aoh-bd-clan.firebasestorage.app",
+          messagingSenderId: "824398865971",
+          appId: "1:824398865971:web:139890878f47e251ad6546",
+          measurementId: "G-4V15NCH2RH"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Database functions
         function initializeData() {
-            if (!localStorage.getItem(STORAGE_KEY)) {
-                const defaultMembers = [
-                    { username: "Keen", level: 13000 },
-                    { username: "Kyle", level: 8100 },
-                    { username: "Tri", level: 5400 },
-                    { username: "Soldier", level: 5400 },
-                    { username: "Zen", level: 5000 },
-                    { username: "Ban", level: 3200 },
-                    { username: "Void", level: 2100 },
-                    { username: "BD_Ravynthal", level: 1713 },
-                    { username: "Yosh", level: 600 },
-                    { username: "DUCK", level: 490 }
-                ];
-                localStorage.setItem(STORAGE_KEY, JSON.stringify({
-                    members: defaultMembers,
-                    adminKey: "ZenIsTrashBDFR"
-                }));
-            }
+            database.ref('clanData').once('value').then(snapshot => {
+                if (!snapshot.exists()) {
+                    const defaultMembers = [
+                        { username: "Keen", level: 13000 },
+                        { username: "Kyle", level: 8100 },
+                        { username: "Tri", level: 5400 },
+                        { username: "Soldier", level: 5400 },
+                        { username: "Zen", level: 5000 },
+                        { username: "Ban", level: 3200 },
+                        { username: "Void", level: 2100 },
+                        { username: "BD_Ravynthal", level: 1713 },
+                        { username: "Yosh", level: 600 },
+                        { username: "DUCK", level: 490 }
+                    ];
+                    saveData({
+                        members: defaultMembers,
+                        adminKey: "ZenIsTrashBDFR"
+                    });
+                }
+            });
         }
-        
-        // Get data from localStorage
-        function getData() {
-            return JSON.parse(localStorage.getItem(STORAGE_KEY));
+
+        function getData(callback) {
+            database.ref('clanData').on('value', snapshot => {
+                callback(snapshot.val());
+            });
         }
-        
-        // Save data to localStorage
+
         function saveData(data) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            database.ref('clanData').set(data);
         }
-        
-        // Get members array
-        function getMembers() {
-            const data = getData();
-            return data.members;
+
+        function getMembers(callback) {
+            getData(data => {
+                callback(data.members);
+            });
         }
-        
-        // Get admin key
-        function getAdminKey() {
-            const data = getData();
-            return data.adminKey;
+
+        function getAdminKey(callback) {
+            getData(data => {
+                callback(data.adminKey);
+            });
         }
-        
-        // Update members array
+
         function updateMembers(updatedMembers) {
-            const data = getData();
-            data.members = updatedMembers;
-            saveData(data);
+            getData(data => {
+                data.members = updatedMembers;
+                saveData(data);
+            });
         }
-        
+
         // Initialize data on page load
         initializeData();
-        
-        const ADMIN_KEY = getAdminKey();
+
         let isAdmin = false;
         let currentAction = null;
         let currentMember = null;
@@ -535,34 +553,61 @@
 
         // Admin Functions
         function verifyAdminKey() {
-            const key = document.getElementById('admin-key').value;
-            
-            if (key === ADMIN_KEY) {
-                isAdmin = true;
-                hideAdminAccess();
-                showMembersDashboard();
-                adminControls.classList.remove('hidden');
-                addMemberBtn.classList.remove('hidden');
-            } else {
-                document.getElementById('admin-key-error').classList.remove('hidden');
-                document.getElementById('admin-key').classList.add('shake');
-                setTimeout(() => document.getElementById('admin-key').classList.remove('shake'), 500);
-            }
+    const key = document.getElementById('admin-key').value;
+    
+    if (!key) {
+        document.getElementById('admin-key-error').textContent = "Please enter an admin key";
+        document.getElementById('admin-key-error').classList.remove('hidden');
+        return;
+    }
+    
+    getAdminKey(adminKey => {
+        if (!adminKey) {
+            console.error("No admin key found in database");
+            return;
         }
+        
+        if (key === adminKey) {
+            isAdmin = true;
+            hideAdminAccess();
+            showMembersDashboard();
+            adminControls.classList.remove('hidden');
+            addMemberBtn.classList.remove('hidden');
+        } else {
+            document.getElementById('admin-key-error').textContent = "Invalid admin key";
+            document.getElementById('admin-key-error').classList.remove('hidden');
+            document.getElementById('admin-key').classList.add('shake');
+            setTimeout(() => document.getElementById('admin-key').classList.remove('shake'), 500);
+        }
+    });
+}
+        // Test Firebase connection
+function testFirebaseConnection() {
+    database.ref('test').set({
+        test: "connection working"
+    }).then(() => {
+        console.log("Firebase connection successful");
+    }).catch(error => {
+        console.error("Firebase connection error:", error);
+    });
+}
+        testFirebaseConnection();
 
         function verifyDashboardAdminKey() {
             const key = document.getElementById('admin-key-input').value;
             
-            if (key === ADMIN_KEY) {
-                isAdmin = true;
-                document.getElementById('admin-key-input').value = '';
-                adminControls.classList.add('hidden');
-                addMemberBtn.classList.remove('hidden');
-                updateAdminUI();
-            } else {
-                document.getElementById('admin-key-input').classList.add('shake');
-                setTimeout(() => document.getElementById('admin-key-input').classList.remove('shake'), 500);
-            }
+            getAdminKey(adminKey => {
+                if (key === adminKey) {
+                    isAdmin = true;
+                    document.getElementById('admin-key-input').value = '';
+                    adminControls.classList.add('hidden');
+                    addMemberBtn.classList.remove('hidden');
+                    updateAdminUI();
+                } else {
+                    document.getElementById('admin-key-input').classList.add('shake');
+                    setTimeout(() => document.getElementById('admin-key-input').classList.remove('shake'), 500);
+                }
+            });
         }
 
         // Members Dashboard Functions
@@ -601,64 +646,65 @@
         function renderMembersGrid() {
             membersGrid.innerHTML = '';
             
-            // Sort members by level (descending)
-            const members = getMembers();
-            const sortedMembers = [...members].sort((a, b) => b.level - a.level);
-            
-            sortedMembers.forEach((member, index) => {
-                const memberCard = document.createElement('div');
-                memberCard.className = 'member-card demon-card p-6 rounded-lg shadow-lg relative cursor-pointer transition-all duration-300';
-                memberCard.setAttribute('data-username', member.username);
+            getMembers(members => {
+                // Sort members by level (descending)
+                const sortedMembers = [...members].sort((a, b) => b.level - a.level);
                 
-                // Add hover effect for admin to indicate clickable
+                sortedMembers.forEach((member, index) => {
+                    const memberCard = document.createElement('div');
+                    memberCard.className = 'member-card demon-card p-6 rounded-lg shadow-lg relative cursor-pointer transition-all duration-300';
+                    memberCard.setAttribute('data-username', member.username);
+                    
+                    // Add hover effect for admin to indicate clickable
+                    if (isAdmin) {
+                        memberCard.classList.add('hover:bg-gray-700');
+                        memberCard.onclick = () => showEditMemberModal(member.username);
+                    }
+                    
+                    // Determine rank color based on level
+                    let rankClass = 'rank-common';
+                    let progressClass = 'progress-common';
+                    
+                    if (member.level >= 5000) {
+                        rankClass = 'rank-legendary';
+                        progressClass = 'progress-legendary';
+                    } else if (member.level >= 2000) {
+                        rankClass = 'rank-epic';
+                        progressClass = 'progress-epic';
+                    } else if (member.level >= 1000) {
+                        rankClass = 'rank-rare';
+                        progressClass = 'progress-rare';
+                    } else if (member.level >= 500) {
+                        rankClass = 'rank-uncommon';
+                        progressClass = 'progress-uncommon';
+                    }
+                    
+                    // Calculate progress percentage (capped at 100%)
+                    const progressPercentage = Math.min(100, (member.level / 15000) * 100);
+                    
+                    memberCard.innerHTML = `
+                        <div class="flex items-center mb-4">
+                            <div class="level-badge ${rankClass}">
+                                ${member.level}
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-xl font-bold">${member.username}</h3>
+                                <p class="text-gray-400">Rank #${index + 1}</p>
+                            </div>
+                        </div>
+                        <div class="w-full bg-gray-700 rounded-full h-2.5">
+                            <div class="${progressClass} h-2.5 rounded-full" style="width: ${progressPercentage}%"></div>
+                        </div>
+                    `;
+                    
+                    membersGrid.appendChild(memberCard);
+                });
+                
+                // Update admin UI if needed
                 if (isAdmin) {
-                    memberCard.classList.add('hover:bg-gray-700');
-                    memberCard.onclick = () => showEditMemberModal(member.username);
+                    updateAdminUI();
                 }
-                
-                // Determine rank color based on level
-                let rankClass = 'rank-common';
-                let progressClass = 'progress-common';
-                
-                if (member.level >= 5000) {
-                    rankClass = 'rank-legendary';
-                    progressClass = 'progress-legendary';
-                } else if (member.level >= 2000) {
-                    rankClass = 'rank-epic';
-                    progressClass = 'progress-epic';
-                } else if (member.level >= 1000) {
-                    rankClass = 'rank-rare';
-                    progressClass = 'progress-rare';
-                } else if (member.level >= 500) {
-                    rankClass = 'rank-uncommon';
-                    progressClass = 'progress-uncommon';
-                }
-                
-                // Calculate progress percentage (capped at 100%)
-                const progressPercentage = Math.min(100, (member.level / 15000) * 100);
-                
-                memberCard.innerHTML = `
-                    <div class="flex items-center mb-4">
-                        <div class="level-badge ${rankClass}">
-                            ${member.level}
-                        </div>
-                        <div class="ml-4">
-                            <h3 class="text-xl font-bold">${member.username}</h3>
-                            <p class="text-gray-400">Rank #${index + 1}</p>
-                        </div>
-                    </div>
-                    <div class="w-full bg-gray-700 rounded-full h-2.5">
-                        <div class="${progressClass} h-2.5 rounded-full" style="width: ${progressPercentage}%"></div>
-                    </div>
-                `;
-                
-                membersGrid.appendChild(memberCard);
             });
-            
-            // Update admin UI if needed
-            if (isAdmin) {
-                updateAdminUI();
-            }
         }
 
         // Member Management Functions
@@ -676,15 +722,16 @@
         function showEditMemberModal(username) {
             if (!isAdmin) return;
             
-            const members = getMembers();
-            const member = members.find(m => m.username === username);
-            if (!member) return;
-            
-            currentMember = member;
-            
-            document.getElementById('edit-member-username').value = member.username;
-            document.getElementById('edit-member-level').value = member.level;
-            editMemberModal.classList.remove('hidden');
+            getMembers(members => {
+                const member = members.find(m => m.username === username);
+                if (!member) return;
+                
+                currentMember = member;
+                
+                document.getElementById('edit-member-username').value = member.username;
+                document.getElementById('edit-member-level').value = member.level;
+                editMemberModal.classList.remove('hidden');
+            });
         }
 
         function hideEditMemberModal() {
@@ -705,32 +752,33 @@
             }
             
             // Check if username exists
-            const members = getMembers();
-            const usernameExists = members.some(m => m.username.toLowerCase() === username.toLowerCase());
-            if (usernameExists) {
-                document.getElementById('new-username-error').textContent = "Username already exists";
-                document.getElementById('new-username-error').classList.remove('hidden');
-                document.getElementById('new-member-username').classList.add('shake');
-                setTimeout(() => document.getElementById('new-member-username').classList.remove('shake'), 500);
-                return;
-            }
-            
-            if (!level || level < 1) {
-                alert("Please enter a valid level");
-                return;
-            }
-            
-            // Add new member
-            const newMember = {
-                username: username,
-                level: level
-            };
-            
-            const updatedMembers = [...members, newMember];
-            updateMembers(updatedMembers);
-            
-            hideAddMemberModal();
-            renderMembersGrid();
+            getMembers(members => {
+                const usernameExists = members.some(m => m.username.toLowerCase() === username.toLowerCase());
+                if (usernameExists) {
+                    document.getElementById('new-username-error').textContent = "Username already exists";
+                    document.getElementById('new-username-error').classList.remove('hidden');
+                    document.getElementById('new-member-username').classList.add('shake');
+                    setTimeout(() => document.getElementById('new-member-username').classList.remove('shake'), 500);
+                    return;
+                }
+                
+                if (!level || level < 1) {
+                    alert("Please enter a valid level");
+                    return;
+                }
+                
+                // Add new member
+                const newMember = {
+                    username: username,
+                    level: level
+                };
+                
+                const updatedMembers = [...members, newMember];
+                updateMembers(updatedMembers);
+                
+                hideAddMemberModal();
+                renderMembersGrid();
+            });
         }
 
         function updateMemberLevel() {
@@ -741,16 +789,17 @@
                 return;
             }
             
-            const members = getMembers();
-            const memberIndex = members.findIndex(m => m.username === currentMember.username);
-            if (memberIndex !== -1) {
-                const updatedMembers = [...members];
-                updatedMembers[memberIndex].level = newLevel;
-                updateMembers(updatedMembers);
-                
-                hideEditMemberModal();
-                renderMembersGrid();
-            }
+            getMembers(members => {
+                const memberIndex = members.findIndex(m => m.username === currentMember.username);
+                if (memberIndex !== -1) {
+                    const updatedMembers = [...members];
+                    updatedMembers[memberIndex].level = newLevel;
+                    updateMembers(updatedMembers);
+                    
+                    hideEditMemberModal();
+                    renderMembersGrid();
+                }
+            });
         }
 
         function confirmDeleteMember() {
@@ -767,17 +816,18 @@
 
         function executeConfirmedAction() {
             if (currentAction === 'delete' && currentMember) {
-                const members = getMembers();
-                const memberIndex = members.findIndex(m => m.username === currentMember.username);
-                if (memberIndex !== -1) {
-                    const updatedMembers = [...members];
-                    updatedMembers.splice(memberIndex, 1);
-                    updateMembers(updatedMembers);
-                    
-                    hideEditMemberModal();
-                    hideConfirmModal();
-                    renderMembersGrid();
-                }
+                getMembers(members => {
+                    const memberIndex = members.findIndex(m => m.username === currentMember.username);
+                    if (memberIndex !== -1) {
+                        const updatedMembers = [...members];
+                        updatedMembers.splice(memberIndex, 1);
+                        updateMembers(updatedMembers);
+                        
+                        hideEditMemberModal();
+                        hideConfirmModal();
+                        renderMembersGrid();
+                    }
+                });
             }
             
             currentAction = null;
@@ -793,4 +843,4 @@
         }
     </script>
 </body>
-</html>
+</html>    
