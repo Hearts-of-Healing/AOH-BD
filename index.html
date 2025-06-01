@@ -423,16 +423,16 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
     <script>
-        // Firebase configuration (replace with your actual config)
-       const firebaseConfig = {
-          apiKey: "AIzaSyBDgadn_l0VLJmgCPzziGbwbXYaIfhn0vQ",
-          authDomain: "aoh-bd-clan.firebaseapp.com",
-          databaseURL: "https://aoh-bd-clan-default-rtdb.firebaseio.com/", // Add this line
-          projectId: "aoh-bd-clan",
-          storageBucket: "aoh-bd-clan.firebasestorage.app",
-          messagingSenderId: "824398865971",
-          appId: "1:824398865971:web:139890878f47e251ad6546",
-          measurementId: "G-4V15NCH2RH"
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBDgadn_l0VLJmgCPzziGbwbXYaIfhn0vQ",
+            authDomain: "aoh-bd-clan.firebaseapp.com",
+            databaseURL: "https://aoh-bd-clan-default-rtdb.firebaseio.com/",
+            projectId: "aoh-bd-clan",
+            storageBucket: "aoh-bd-clan.firebasestorage.app",
+            messagingSenderId: "824398865971",
+            appId: "1:824398865971:web:139890878f47e251ad6546",
+            measurementId: "G-4V15NCH2RH"
         };
 
         // Initialize Firebase
@@ -441,24 +441,28 @@
 
         // Database functions
         function initializeData() {
+            const defaultData = {
+                adminKey: "ZenIsTrashBDFR",
+                members: [
+                    { username: "Keen", level: 13000 },
+                    { username: "Kyle", level: 8100 },
+                    { username: "Tri", level: 5400 },
+                    { username: "Soldier", level: 5400 },
+                    { username: "Zen", level: 5000 },
+                    { username: "Ban", level: 3200 },
+                    { username: "Void", level: 2100 },
+                    { username: "BD_Ravynthal", level: 1713 },
+                    { username: "Yosh", level: 600 },
+                    { username: "DUCK", level: 490 }
+                ]
+            };
+
+            // Check if data exists, if not, set default data
             database.ref('clanData').once('value').then(snapshot => {
                 if (!snapshot.exists()) {
-                    const defaultMembers = [
-                        { username: "Keen", level: 13000 },
-                        { username: "Kyle", level: 8100 },
-                        { username: "Tri", level: 5400 },
-                        { username: "Soldier", level: 5400 },
-                        { username: "Zen", level: 5000 },
-                        { username: "Ban", level: 3200 },
-                        { username: "Void", level: 2100 },
-                        { username: "BD_Ravynthal", level: 1713 },
-                        { username: "Yosh", level: 600 },
-                        { username: "DUCK", level: 490 }
-                    ];
-                    saveData({
-                        members: defaultMembers,
-                        adminKey: "ZenIsTrashBDFR"
-                    });
+                    database.ref('clanData').set(defaultData)
+                        .then(() => console.log("✅ Default data initialized!"))
+                        .catch(error => console.error("❌ Error initializing data:", error));
                 }
             });
         }
@@ -492,9 +496,18 @@
             });
         }
 
-        // Initialize data on page load
-        initializeData();
+        // Test Firebase connection
+        function testFirebaseConnection() {
+            database.ref('test').set({
+                test: "connection working"
+            }).then(() => {
+                console.log("Firebase connection successful");
+            }).catch(error => {
+                console.error("Firebase connection error:", error);
+            });
+        }
 
+        // Application state
         let isAdmin = false;
         let currentAction = null;
         let currentMember = null;
@@ -513,20 +526,7 @@
         const adminBtn = document.getElementById('admin-btn');
         const adminNote = document.getElementById('admin-note');
 
-        // Event Listeners
-        document.addEventListener('DOMContentLoaded', function() {
-            playBtn.addEventListener('click', showMembersDashboard);
-            adminBtn.addEventListener('click', showAdminAccess);
-            addMemberBtn.addEventListener('click', showAddMemberModal);
-            
-            // Initialize admin note button
-            const secretBtn = document.querySelector('.secret-button');
-            if (secretBtn) {
-                secretBtn.addEventListener('click', showAdminNote);
-            }
-        });
-
-        // Secret admin note functions
+        // UI Functions
         function showAdminNote() {
             adminNote.style.display = 'block';
         }
@@ -535,13 +535,7 @@
             adminNote.style.display = 'none';
         }
 
-        // Main Menu Functions
         function showAdminAccess() {
-            // Add click effect
-            const btn = event.target.closest('button');
-            btn.classList.add('glow-animation');
-            setTimeout(() => btn.classList.remove('glow-animation'), 2000);
-            
             adminAccessContainer.classList.remove('hidden');
         }
 
@@ -551,47 +545,35 @@
             document.getElementById('admin-key-error').classList.add('hidden');
         }
 
-        // Admin Functions
         function verifyAdminKey() {
-    const key = document.getElementById('admin-key').value;
-    
-    if (!key) {
-        document.getElementById('admin-key-error').textContent = "Please enter an admin key";
-        document.getElementById('admin-key-error').classList.remove('hidden');
-        return;
-    }
-    
-    getAdminKey(adminKey => {
-        if (!adminKey) {
-            console.error("No admin key found in database");
-            return;
+            const key = document.getElementById('admin-key').value;
+            
+            if (!key) {
+                document.getElementById('admin-key-error').textContent = "Please enter an admin key";
+                document.getElementById('admin-key-error').classList.remove('hidden');
+                return;
+            }
+            
+            getAdminKey(adminKey => {
+                if (!adminKey) {
+                    console.error("No admin key found in database");
+                    return;
+                }
+                
+                if (key === adminKey) {
+                    isAdmin = true;
+                    hideAdminAccess();
+                    showMembersDashboard();
+                    adminControls.classList.remove('hidden');
+                    addMemberBtn.classList.remove('hidden');
+                } else {
+                    document.getElementById('admin-key-error').textContent = "Invalid admin key";
+                    document.getElementById('admin-key-error').classList.remove('hidden');
+                    document.getElementById('admin-key').classList.add('shake');
+                    setTimeout(() => document.getElementById('admin-key').classList.remove('shake'), 500);
+                }
+            });
         }
-        
-        if (key === adminKey) {
-            isAdmin = true;
-            hideAdminAccess();
-            showMembersDashboard();
-            adminControls.classList.remove('hidden');
-            addMemberBtn.classList.remove('hidden');
-        } else {
-            document.getElementById('admin-key-error').textContent = "Invalid admin key";
-            document.getElementById('admin-key-error').classList.remove('hidden');
-            document.getElementById('admin-key').classList.add('shake');
-            setTimeout(() => document.getElementById('admin-key').classList.remove('shake'), 500);
-        }
-    });
-}
-        // Test Firebase connection
-function testFirebaseConnection() {
-    database.ref('test').set({
-        test: "connection working"
-    }).then(() => {
-        console.log("Firebase connection successful");
-    }).catch(error => {
-        console.error("Firebase connection error:", error);
-    });
-}
-        testFirebaseConnection();
 
         function verifyDashboardAdminKey() {
             const key = document.getElementById('admin-key-input').value;
@@ -610,18 +592,15 @@ function testFirebaseConnection() {
             });
         }
 
-        // Members Dashboard Functions
         function showMembersDashboard() {
             mainMenu.classList.add('hidden');
             adminAccessContainer.classList.add('hidden');
             membersDashboard.classList.remove('hidden');
-            
             renderMembersGrid();
         }
 
         function updateAdminUI() {
             if (isAdmin) {
-                // Add edit buttons to all member cards
                 const memberCards = document.querySelectorAll('.member-card');
                 memberCards.forEach(card => {
                     if (!card.querySelector('.edit-btn')) {
@@ -637,7 +616,6 @@ function testFirebaseConnection() {
                     }
                 });
             } else {
-                // Remove edit buttons from member cards
                 const editButtons = document.querySelectorAll('.edit-btn');
                 editButtons.forEach(btn => btn.remove());
             }
@@ -647,7 +625,6 @@ function testFirebaseConnection() {
             membersGrid.innerHTML = '';
             
             getMembers(members => {
-                // Sort members by level (descending)
                 const sortedMembers = [...members].sort((a, b) => b.level - a.level);
                 
                 sortedMembers.forEach((member, index) => {
@@ -655,13 +632,11 @@ function testFirebaseConnection() {
                     memberCard.className = 'member-card demon-card p-6 rounded-lg shadow-lg relative cursor-pointer transition-all duration-300';
                     memberCard.setAttribute('data-username', member.username);
                     
-                    // Add hover effect for admin to indicate clickable
                     if (isAdmin) {
                         memberCard.classList.add('hover:bg-gray-700');
                         memberCard.onclick = () => showEditMemberModal(member.username);
                     }
                     
-                    // Determine rank color based on level
                     let rankClass = 'rank-common';
                     let progressClass = 'progress-common';
                     
@@ -679,7 +654,6 @@ function testFirebaseConnection() {
                         progressClass = 'progress-uncommon';
                     }
                     
-                    // Calculate progress percentage (capped at 100%)
                     const progressPercentage = Math.min(100, (member.level / 15000) * 100);
                     
                     memberCard.innerHTML = `
@@ -700,14 +674,12 @@ function testFirebaseConnection() {
                     membersGrid.appendChild(memberCard);
                 });
                 
-                // Update admin UI if needed
                 if (isAdmin) {
                     updateAdminUI();
                 }
             });
         }
 
-        // Member Management Functions
         function showAddMemberModal() {
             addMemberModal.classList.remove('hidden');
             document.getElementById('new-member-username').value = '';
@@ -751,7 +723,6 @@ function testFirebaseConnection() {
                 return;
             }
             
-            // Check if username exists
             getMembers(members => {
                 const usernameExists = members.some(m => m.username.toLowerCase() === username.toLowerCase());
                 if (usernameExists) {
@@ -767,7 +738,6 @@ function testFirebaseConnection() {
                     return;
                 }
                 
-                // Add new member
                 const newMember = {
                     username: username,
                     level: level
@@ -841,6 +811,25 @@ function testFirebaseConnection() {
             adminControls.classList.add('hidden');
             addMemberBtn.classList.add('hidden');
         }
+
+        // Event Listeners
+        function setupEventListeners() {
+            if (playBtn) playBtn.addEventListener('click', showMembersDashboard);
+            if (adminBtn) adminBtn.addEventListener('click', showAdminAccess);
+            if (addMemberBtn) addMemberBtn.addEventListener('click', showAddMemberModal);
+            
+            const secretBtn = document.querySelector('.secret-button');
+            if (secretBtn) {
+                secretBtn.addEventListener('click', showAdminNote);
+            }
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeData();
+            setupEventListeners();
+            testFirebaseConnection();
+        });
     </script>
 </body>
-</html>    
+</html>
