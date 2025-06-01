@@ -1308,13 +1308,42 @@
     addMemberForm.style.display = addMemberForm.style.display === 'block' ? 'none' : 'block';
   }
 
-  function setupEventListeners() {
-    // Main menu buttons
-    playBtn.addEventListener('click', showAuthContainer);
-    adminLoginBtn.addEventListener('click', () => {
-      isAdmin = false;
-      adminKeyForm.style.display = 'block';
-    });
+function setupEventListeners() {
+  console.log('Setting up event listeners...');
+  
+  // Verify buttons exist
+  console.log('Play button:', playBtn);
+  console.log('Admin button:', adminLoginBtn);
+
+  // Main menu buttons
+  playBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    console.log('Play button clicked');
+    showAuthContainer();
+    
+    // Ripple effect
+    const x = e.clientX - e.target.getBoundingClientRect().left;
+    const y = e.clientY - e.target.getBoundingClientRect().top;
+    
+    const ripple = document.createElement('span');
+    ripple.className = 'ripple';
+    ripple.style.left = `${x}px`;
+    ripple.style.top = `${y}px`;
+    
+    this.appendChild(ripple);
+    
+    setTimeout(() => {
+      ripple.remove();
+    }, 1000);
+  });
+
+  adminLoginBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    console.log('Admin button clicked');
+    isAdmin = false;
+    adminKeyForm.style.display = 'block';
+    document.getElementById('admin-key').focus();
+  });
     
     // Auth forms
     loginForm.addEventListener('submit', handleLogin);
