@@ -1,10 +1,16 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="mobile-web-app-capable" content="yes">
 <title>Age of Heroes Clan Tracker</title>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
 <style>
-  /* Reset & basics */
   * {
     box-sizing: border-box;
   }
@@ -17,7 +23,6 @@
     height: 100%;
   }
 
-  /* Background chessboard animation */
   body::before {
     content: "";
     position: fixed;
@@ -38,7 +43,6 @@
     100% {background-position: 100px 100px, 100px 100px, 100px 100px, 100px 100px;}
   }
 
-  /* Hide elements initially */
   #app {
     max-width: 1200px;
     margin: 0 auto;
@@ -46,7 +50,6 @@
     display: none;
   }
 
-  /* Clan Logo */
   #clan-logo, #menu-clan-logo {
     font-size: 3rem;
     font-weight: 900;
@@ -61,22 +64,25 @@
     content: "♞";
     display: inline-block;
     margin-right: 0.5rem;
-    animation: logo-spin 4s linear infinite;
+    animation: logo-shine 3s infinite linear;
     color: #7afcff;
   }
-  @keyframes logo-spin {
-    0% { transform: rotate(0deg);}
-    100% { transform: rotate(360deg);}
+  @keyframes logo-shine {
+    0%, 90%, 100% {
+      text-shadow: 0 0 0 #0ff;
+    }
+    95% {
+      text-shadow: 0 0 15px #0ff;
+    }
   }
 
-  /* Cards container */
   #cardsContainer {
     display: grid;
     grid-template-columns: repeat(auto-fit,minmax(180px,1fr));
     gap: 1rem;
+    position: relative;
   }
 
-  /* Flip card styles */
   .flip-card {
     background: #222;
     border-radius: 12px;
@@ -85,26 +91,34 @@
     cursor: pointer;
     position: relative;
     height: 260px;
-    transition: transform 0.3s ease;
+    transform-style: preserve-3d;
   }
+  
   .flip-card-inner {
     position: relative;
     width: 100%;
     height: 100%;
-    transition: transform 0.8s cubic-bezier(0.4,0,0.2,1);
+    transition: transform 0.6s;
     transform-style: preserve-3d;
   }
-  .flip-card:hover .flip-card-inner {
+  
+  @media (hover: hover) {
+    .flip-card:hover .flip-card-inner {
+      transform: rotateY(180deg);
+    }
+  }
+  
+  .flip-card.flipped .flip-card-inner {
     transform: rotateY(180deg);
   }
 
-  /* Front & back faces */
   .flip-card-front, .flip-card-back {
     position: absolute;
     width: 100%;
     height: 100%;
-    border-radius: 12px;
+    -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
+    border-radius: 12px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -112,9 +126,11 @@
     padding: 1rem;
     box-sizing: border-box;
   }
+  
   .flip-card-front {
     background: linear-gradient(145deg, #282828, #202020);
   }
+  
   .flip-card-back {
     background: linear-gradient(145deg, #111, #222);
     color: #7afcff;
@@ -123,7 +139,6 @@
     font-size: 1.4rem;
   }
 
-  /* Member picture */
   .member-pic {
     width: 100px;
     height: 100px;
@@ -134,7 +149,6 @@
     box-shadow: 0 0 12px #0ff;
   }
 
-  /* Titles on front */
   .title-text {
     font-size: 1.2rem;
     font-weight: 700;
@@ -143,13 +157,11 @@
     user-select: none;
   }
 
-  /* Level text on back */
   .level-text {
     margin-top: 20px;
     font-size: 1.6rem;
   }
 
-  /* Remove button */
   .remove-btn {
     margin-top: 1rem;
     background: #ff2e2e;
@@ -165,7 +177,6 @@
     background: #cc2424;
   }
 
-  /* Add member button */
   #add-member-btn {
     position: fixed;
     top: 15px;
@@ -180,12 +191,33 @@
     box-shadow: 0 0 10px #0ffaa;
     user-select: none;
     z-index: 10;
+    display: none;
   }
   #add-member-btn:hover {
     background: #0cc;
   }
 
-  /* Add member form dropdown */
+  #admin-access-btn {
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    background: #ff9900;
+    border: none;
+    padding: 8px 12px;
+    font-size: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #111;
+    font-weight: bold;
+    box-shadow: 0 0 10px #ff9900aa;
+    user-select: none;
+    z-index: 10;
+    display: none;
+  }
+  #admin-access-btn:hover {
+    background: #cc7700;
+  }
+
   #add-member-form {
     position: fixed;
     top: 60px;
@@ -227,7 +259,6 @@
     background: #0cc;
   }
 
-  /* Scrollbar fix */
   ::-webkit-scrollbar {
     width: 10px;
   }
@@ -236,7 +267,7 @@
     border-radius: 6px;
   }
 
-  /* Main Menu */
+  /* Main Menu Styles */
   #main-menu {
     height: 100vh;
     background: #121212;
@@ -247,9 +278,104 @@
   }
   #menu-clan-logo {
     font-size: 5rem;
-    margin-bottom: 1rem;
+    margin-bottom: 2rem;
+    transform: translateY(-100vh);
+    animation: titleDrop 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
-  #start-btn {
+
+  @keyframes titleDrop {
+    0% {
+      transform: translateY(-100vh);
+    }
+    80% {
+      transform: translateY(20px);
+    }
+    100% {
+      transform: translateY(0);
+    }
+  }
+
+  /* Ground Crack Effect */
+  .ground-crack {
+    position: absolute;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 10px;
+    background: radial-gradient(ellipse at center, 
+      rgba(122,252,255,0.8) 0%, 
+      rgba(122,252,255,0) 70%);
+    border-radius: 50%;
+    animation: crackExpand 0.8s 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    z-index: -1;
+  }
+
+  @keyframes crackExpand {
+    0% {
+      width: 0;
+      height: 10px;
+      opacity: 1;
+    }
+    100% {
+      width: 400px;
+      height: 100px;
+      opacity: 0;
+    }
+  }
+
+  /* Orbit Container */
+  .orbit-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px;
+    height: 300px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1s;
+  }
+
+  /* Orbiting Objects */
+  .orbiter {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #7afcff;
+    box-shadow: 0 0 10px #7afcff;
+    animation: orbit 8s linear infinite;
+    transform-origin: 150px 150px;
+  }
+
+  .orbiter:nth-child(1) {
+    background: #7afcff;
+    animation-delay: 0s;
+  }
+  .orbiter:nth-child(2) {
+    background: #ff7a7a;
+    animation-delay: -2s;
+  }
+  .orbiter:nth-child(3) {
+    background: #7aff7a;
+    animation-delay: -4s;
+  }
+  .orbiter:nth-child(4) {
+    background: #ffcc7a;
+    animation-delay: -6s;
+  }
+
+  @keyframes orbit {
+    0% {
+      transform: rotate(0deg) translateX(150px) rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg) translateX(150px) rotate(-360deg);
+    }
+  }
+
+  .menu-btn {
     padding: 1rem 3rem;
     font-size: 1.6rem;
     border: none;
@@ -259,10 +385,319 @@
     color: #111;
     font-weight: 700;
     box-shadow: 0 0 15px #0ff;
-    transition: background 0.3s ease;
+    transition: all 0.3s ease;
+    margin: 0.5rem 0;
+    width: 250px;
+    text-align: center;
   }
-  #start-btn:hover {
+  .menu-btn:hover {
     background: #0cc;
+    transform: scale(1.05);
+  }
+
+  /* Play button specific styles */
+  #play-btn {
+    background: linear-gradient(145deg, #00ffff, #00cccc);
+    box-shadow: 0 5px 20px rgba(0, 255, 255, 0.4),
+                0 0 0 2px #0ff inset;
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+  }
+
+  #play-btn:hover {
+    transform: translateY(-5px) scale(1.05);
+    box-shadow: 0 8px 25px rgba(0, 255, 255, 0.6),
+                0 0 0 4px #0ff inset;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+  }
+
+  #play-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+              transparent, 
+              rgba(255, 255, 255, 0.2), 
+              transparent);
+    transition: 0.5s;
+    z-index: -1;
+  }
+
+  #play-btn:hover::before {
+    left: 100%;
+  }
+
+  #play-btn::after {
+    content: '▶';
+    position: absolute;
+    left: -20px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    transition: all 0.3s ease;
+  }
+
+  #play-btn:hover::after {
+    left: 20px;
+    opacity: 1;
+  }
+
+  /* Auth Container Styles */
+  #auth-container {
+    display: none;
+    height: 100vh;
+    background: #121212;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  /* Profile Setup Styles */
+  #profile-setup {
+    display: none;
+    height: 100vh;
+    background: #121212;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  /* Form Styles */
+  .form-container {
+    background: #222;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+    width: 320px;
+    margin-top: 1rem;
+  }
+  
+  .form-container h2 {
+    color: #7afcff;
+    text-align: center;
+    margin-top: 0;
+  }
+  
+  .form-container label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #7afcff;
+  }
+  
+  .form-container input, .form-container select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 1rem;
+    border-radius: 6px;
+    border: none;
+    background: #333;
+    color: white;
+  }
+  
+  .form-container button {
+    width: 100%;
+    padding: 12px;
+    background: #0ff;
+    border: none;
+    border-radius: 8px;
+    color: #111;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+  
+  .form-container button:hover {
+    background: #0cc;
+  }
+  
+  .error-message {
+    color: #ff6b6b;
+    text-align: center;
+    margin-bottom: 1rem;
+    display: none;
+  }
+  
+  .success-message {
+    color: #7afcff;
+    text-align: center;
+    margin-bottom: 1rem;
+    display: none;
+  }
+  
+  /* Profile Picture Upload */
+  .profile-pic-upload {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  
+  .profile-pic-preview {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #7afcff;
+    margin-bottom: 1rem;
+    display: none;
+  }
+  
+  .upload-btn {
+    background: #333;
+    color: #7afcff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.3s;
+  }
+  
+  .upload-btn:hover {
+    background: #444;
+  }
+  
+  /* Navigation Links */
+  .nav-link {
+    color: #7afcff;
+    text-decoration: none;
+    margin-top: 1rem;
+    display: block;
+    text-align: center;
+    cursor: pointer;
+  }
+  
+  .nav-link:hover {
+    text-decoration: underline;
+  }
+  
+  /* Admin Key Form */
+  #admin-key-form {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #222;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(255, 153, 0, 0.5);
+    width: 320px;
+    z-index: 100;
+    display: none;
+  }
+  
+  #admin-key-form h2 {
+    color: #ff9900;
+    text-align: center;
+    margin-top: 0;
+  }
+  
+  #admin-key-form p {
+    color: #aaa;
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+  
+  #admin-key-form input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 1rem;
+    border-radius: 6px;
+    border: none;
+    background: #333;
+    color: white;
+  }
+  
+  #admin-key-form button {
+    width: 100%;
+    padding: 12px;
+    background: #ff9900;
+    border: none;
+    border-radius: 8px;
+    color: #111;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+  
+  #admin-key-form button:hover {
+    background: #cc7700;
+  }
+  
+  #close-admin-form {
+    display: block;
+    text-align: center;
+    margin-top: 1rem;
+    color: #ff9900;
+    cursor: pointer;
+  }
+  
+  /* Ground Smash Animation */
+  .ground-smash {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 5;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .ground-smash-effect {
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(122,252,255,0.8) 0%, rgba(122,252,255,0) 70%);
+    border-radius: 50%;
+    transform: scale(0);
+    opacity: 0;
+    animation: groundSmash 1s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  @keyframes groundSmash {
+    0% {
+      transform: scale(0);
+      opacity: 0.8;
+    }
+    70% {
+      opacity: 0.5;
+    }
+    100% {
+      transform: scale(3);
+      opacity: 0;
+    }
+  }
+
+  /* Ripple effect styles */
+  .ripple {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    transform: scale(0);
+    animation: ripple 0.6s linear;
+    pointer-events: none;
+  }
+
+  @keyframes ripple {
+    to {
+      transform: scale(4);
+      opacity: 0;
+    }
+  }
+
+  /* Shake animation */
+  @keyframes shake {
+    0%, 100% { transform: translateX(-50%) translateY(-50%); }
+    20%, 60% { transform: translateX(-50%) translateY(-50%) translateX(-5px); }
+    40%, 80% { transform: translateX(-50%) translateY(-50%) translateX(5px); }
+  }
+  .shake {
+    animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
   }
 </style>
 </head>
@@ -270,25 +705,129 @@
 
 <!-- Main Menu -->
 <div id="main-menu">
+  <div class="orbit-container">
+    <div class="orbiter"></div>
+    <div class="orbiter"></div>
+    <div class="orbiter"></div>
+    <div class="orbiter"></div>
+  </div>
   <div id="menu-clan-logo">AGE OF HEROES</div>
-  <button id="start-btn">Start Tracker</button>
+  <div class="ground-crack"></div>
+  <button id="play-btn" class="menu-btn">Play</button>
+  <button id="admin-login-btn" class="menu-btn">Admin Login</button>
+</div>
+
+<!-- Auth Container -->
+<div id="auth-container">
+  <div id="menu-clan-logo">AGE OF HEROES</div>
+  
+  <!-- Login Form -->
+  <form id="login-form" class="form-container">
+    <h2>Member Login</h2>
+    <div class="error-message" id="login-error"></div>
+    <label for="username">Roblox Username</label>
+    <input type="text" id="username" placeholder="Enter your Roblox username" required>
+    
+    <label for="password">Password</label>
+    <input type="password" id="password" placeholder="Enter your password" required>
+    
+    <div style="display: flex; align-items: center; margin: 1rem 0;">
+      <input type="checkbox" id="remember-me" style="width: auto; margin-right: 8px;">
+      <label for="remember-me" style="margin: 0;">Remember Me</label>
+    </div>
+    
+    <button type="submit">Login</button>
+    
+    <span class="nav-link" id="register-link">Don't have an account? Register</span>
+  </form>
+  
+  <!-- Register Form -->
+  <form id="register-form" class="form-container" style="display: none;">
+    <h2>Register</h2>
+    <div class="error-message" id="register-error"></div>
+    <div class="success-message" id="register-success"></div>
+    
+    <label for="reg-username">Roblox Username</label>
+    <input type="text" id="reg-username" placeholder="Enter your Roblox username" required>
+    
+    <label for="reg-password">Password</label>
+    <input type="password" id="reg-password" placeholder="Create a password" required>
+    
+    <label for="reg-confirm-password">Confirm Password</label>
+    <input type="password" id="reg-confirm-password" placeholder="Confirm your password" required>
+    
+    <label for="reg-level">Level (0 - 15000)</label>
+    <input type="number" id="reg-level" min="0" max="15000" value="0" required>
+    
+    <button type="submit">Register</button>
+    
+    <span class="nav-link" id="login-link">Already have an account? Login</span>
+  </form>
+</div>
+
+<!-- Profile Setup -->
+<div id="profile-setup">
+  <div id="menu-clan-logo">AGE OF HEROES</div>
+  
+  <form id="profile-form" class="form-container">
+    <h2>Complete Your Profile</h2>
+    <div class="error-message" id="profile-error"></div>
+    
+    <div class="profile-pic-upload">
+      <img id="profile-pic-preview" class="profile-pic-preview" alt="Profile Preview">
+      <label for="profile-pic-upload" class="upload-btn">Upload Profile Picture</label>
+      <input type="file" id="profile-pic-upload" accept="image/*" style="display: none;">
+    </div>
+    
+    <label for="profile-name">Display Name</label>
+    <input type="text" id="profile-name" placeholder="Enter your display name" required>
+    
+    <label for="profile-type">Piece Type</label>
+    <select id="profile-type" required>
+      <option value="knight">Knight</option>
+      <option value="demon">Demon</option>
+      <option value="angel">Angel</option>
+      <option value="king">King</option>
+      <option value="queen">Queen</option>
+      <option value="nice_guy">Nice Guy</option>
+    </select>
+    
+    <button type="submit">Complete Setup</button>
+  </form>
+</div>
+
+<!-- Admin Key Form -->
+<div id="admin-key-form">
+  <h2>Admin Access</h2>
+  <p>Enter the admin key to access management features</p>
+  <div class="error-message" id="admin-error"></div>
+  <input type="password" id="admin-key" placeholder="Enter admin key" required>
+  <button type="submit">Verify Key</button>
+  <span id="close-admin-form">Cancel</span>
 </div>
 
 <!-- App -->
 <div id="app">
+  <button id="admin-access-btn">Admin Access</button>
   <div id="clan-logo">AGE OF HEROES</div>
   <button id="add-member-btn" title="Add Member">+</button>
   <form id="add-member-form">
-    <label for="nameInput">Name</label>
-    <input id="nameInput" type="text" placeholder="Player name" required />
+    <label for="nameInput">Roblox Username</label>
+    <input id="nameInput" type="text" placeholder="Player's Roblox username" required />
+    
     <label for="levelInput">Level (0 - 15000)</label>
     <input id="levelInput" type="number" min="0" max="15000" value="0" required />
+    
     <label for="typeSelect">Piece Type</label>
     <select id="typeSelect" required>
-      <option value="pawn">Pawn</option>
-      <option value="queen">Queen</option>
+      <option value="knight">Knight</option>
+      <option value="demon">Demon</option>
+      <option value="angel">Angel</option>
       <option value="king">King</option>
+      <option value="queen">Queen</option>
+      <option value="nice_guy">Nice Guy</option>
     </select>
+    
     <button type="submit">Add Member</button>
   </form>
 
@@ -296,23 +835,48 @@
 </div>
 
 <script>
-  // Data keys
-  const STORAGE_KEY = 'ageOfHeroesClanMembers';
+  // Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyDkBj4UVirnVIGSfYx_anVy4VtZPNx3cYU",
+    authDomain: "ageofheroestracker.firebaseapp.com",
+    databaseURL: "https://ageofheroestracker.firebaseio.com",
+    projectId: "ageofheroestracker",
+    storageBucket: "ageofheroestracker.appspot.com",
+    messagingSenderId: "786749448583",
+    appId: "1:786749448583:web:01ccb84f3a24a0f9a73322"
+  };
+
+  // Initialize Firebase
+  const app = firebase.initializeApp(firebaseConfig);
+  const database = firebase.database();
+  const auth = firebase.auth();
+  const storage = firebase.storage();
+
+  // Database references
+  const membersRef = database.ref('public/members');
+  const profilesRef = database.ref('public/profiles');
+
+  // Constants
   const MAX_LEVEL = 15000;
+  const PIECE_TYPES = ['knight', 'demon', 'angel', 'king', 'queen', 'nice_guy'];
 
-  // Default 5 members
-  const defaultMembers = [
-    { id: 1, title: "Jizzler - Levi", name: "Levi", level: 12000, type: "queen", pic: "https://i.pravatar.cc/100?u=levi" },
-    { id: 2, title: "Chigglette - Zen", name: "Zen", level: 8500, type: "pawn", pic: "" },
-    { id: 3, title: "megatron - Kyle", name: "Kyle", level: 14000, type: "queen", pic: "https://i.pravatar.cc/100?u=kyle" },
-    { id: 4, title: "Whorr - Ban", name: "Ban", level: 15000, type: "king", pic: "https://i.pravatar.cc/100?u=ban" },
-    { id: 5, title: "GOAT(TECH) - Ravynthal", name: "Ravynthal", level: 7000, type: "pawn", pic: "https://i.pravatar.cc/100?u=ravynthal" }
-  ];
-
-  // Elements
+  // DOM Elements
   const mainMenu = document.getElementById('main-menu');
-  const startBtn = document.getElementById('start-btn');
+  const playBtn = document.getElementById('play-btn');
+  const adminLoginBtn = document.getElementById('admin-login-btn');
+  const authContainer = document.getElementById('auth-container');
+  const loginForm = document.getElementById('login-form');
+  const registerForm = document.getElementById('register-form');
+  const registerLink = document.getElementById('register-link');
+  const loginLink = document.getElementById('login-link');
+  const profileSetup = document.getElementById('profile-setup');
+  const profileForm = document.getElementById('profile-form');
+  const profilePicUpload = document.getElementById('profile-pic-upload');
+  const profilePicPreview = document.getElementById('profile-pic-preview');
+  const adminKeyForm = document.getElementById('admin-key-form');
+  const closeAdminForm = document.getElementById('close-admin-form');
   const app = document.getElementById('app');
+  const adminAccessBtn = document.getElementById('admin-access-btn');
   const cardsContainer = document.getElementById('cardsContainer');
   const addMemberBtn = document.getElementById('add-member-btn');
   const addMemberForm = document.getElementById('add-member-form');
@@ -320,114 +884,500 @@
   const levelInput = document.getElementById('levelInput');
   const typeSelect = document.getElementById('typeSelect');
 
+  // State variables
   let members = [];
+  let currentUser = null;
+  let isAdmin = false;
+  let unsubscribeMembers = null;
 
-  // Load members from localStorage or default
-  function loadMembers() {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if(saved) {
-      members = JSON.parse(saved);
-    } else {
-      members = [...defaultMembers];
-      saveMembers();
+  // Initialize the app
+  async function init() {
+    try {
+      setupEventListeners();
+      checkAuthState();
+      
+      // Initial animations
+      setTimeout(() => {
+        createGroundSmash(mainMenu);
+        setTimeout(createOrbitingObjects, 1000);
+      }, 100);
+    } catch (error) {
+      console.error("Initialization error:", error);
+      mainMenu.style.display = 'flex';
     }
   }
 
-  // Save to localStorage
-  function saveMembers() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(members));
+  // Authentication functions
+  async function checkAuthState() {
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        currentUser = user;
+        
+        // Check admin status
+        try {
+          const token = await user.getIdTokenResult();
+          isAdmin = token.claims.isAdmin || false;
+        } catch (error) {
+          console.error("Error checking admin status:", error);
+          isAdmin = false;
+        }
+        
+        // Check if profile exists
+        try {
+          const profile = await getProfile(user.uid);
+          if (profile) {
+            showApp();
+          } else {
+            showProfileSetup();
+          }
+        } catch (error) {
+          console.error("Error checking profile:", error);
+          showProfileSetup();
+        }
+      } else {
+        showMainMenu();
+      }
+    });
   }
 
-  // Create chess piece SVG (simple 2D shapes)
-  function createPieceSVG(type, black = false) {
-    const fill = black ? '#222' : '#7afcff';
-    switch(type) {
-      case 'king':
-        return `<svg width="80" height="80" viewBox="0 0 64 64" fill="${fill}" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="10" r="6"/><rect x="28" y="16" width="8" height="40" rx="2"/></svg>`;
-      case 'queen':
-        return `<svg width="80" height="80" viewBox="0 0 64 64" fill="${fill}" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="12" r="5"/><circle cx="32" cy="6" r="6"/><circle cx="48" cy="12" r="5"/><rect x="22" y="16" width="20" height="40" rx="2"/></svg>`;
-      case 'pawn':
-      default:
-        return `<svg width="80" height="80" viewBox="0 0 64 64" fill="${fill}" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="20" r="10"/><rect x="26" y="30" width="12" height="26" rx="2"/></svg>`;
+  async function login(email, password) {
+    try {
+      await auth.signInWithEmailAndPassword(email, password);
+    } catch (error) {
+      console.error("Login error:", error);
+      throw error;
     }
   }
 
-  // Render cards
+  async function register(email, password, robloxUsername) {
+    try {
+      const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+      await createProfile(userCredential.user.uid, {
+        robloxUsername,
+        displayName: robloxUsername,
+        pieceType: 'knight'
+      });
+      return userCredential.user;
+    } catch (error) {
+      console.error("Registration error:", error);
+      throw error;
+    }
+  }
+
+  async function logout() {
+    try {
+      await auth.signOut();
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  }
+
+  // Profile functions
+  async function createProfile(userId, profileData) {
+    await profilesRef.child(userId).set({
+      ...profileData,
+      createdAt: firebase.database.ServerValue.TIMESTAMP
+    });
+  }
+
+  async function getProfile(userId) {
+    const snapshot = await profilesRef.child(userId).once('value');
+    return snapshot.val();
+  }
+
+  async function updateProfile(profileData) {
+    await profilesRef.child(currentUser.uid).update({
+      ...profileData,
+      updatedAt: firebase.database.ServerValue.TIMESTAMP
+    });
+  }
+
+  async function uploadProfilePicture(file) {
+    const storageRef = storage.ref(`profile_pictures/${currentUser.uid}`);
+    const snapshot = await storageRef.put(file);
+    return await snapshot.ref.getDownloadURL();
+  }
+
+  // Member functions
+  async function addMember(memberData) {
+    if (!isAdmin) throw new Error("Admin access required");
+    
+    const memberId = memberData.id || Date.now().toString();
+    
+    await membersRef.child(memberId).set({
+      id: memberId,
+      name: memberData.name,
+      level: memberData.level,
+      type: memberData.type,
+      userId: currentUser.uid,
+      createdAt: firebase.database.ServerValue.TIMESTAMP
+    });
+  }
+
+  async function removeMember(memberId) {
+    if (!isAdmin) throw new Error("Admin access required");
+    await membersRef.child(memberId).remove();
+  }
+
+  function subscribeToMembers(callback) {
+    unsubscribeMembers = membersRef.on('value', (snapshot) => {
+      const membersList = [];
+      snapshot.forEach((childSnapshot) => {
+        membersList.push(childSnapshot.val());
+      });
+      callback(membersList);
+    });
+  }
+
+  // Admin functions
+  async function verifyAdminKey(key) {
+    try {
+      // In a real app, this would call a Cloud Function
+      // For this example, we'll simulate it
+      const isValid = key === 'ZenIsTrashFr'; // Replace with your actual key
+      if (isValid && currentUser) {
+        // In a real app, you would call a Cloud Function to set custom claims
+        isAdmin = true;
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Admin verification error:", error);
+      return false;
+    }
+  }
+
+  // UI Functions
+  function showMainMenu() {
+    mainMenu.style.display = 'flex';
+    authContainer.style.display = 'none';
+    profileSetup.style.display = 'none';
+    app.style.display = 'none';
+    
+    if (unsubscribeMembers) {
+      unsubscribeMembers();
+      unsubscribeMembers = null;
+    }
+  }
+
+  function showAuthContainer() {
+    mainMenu.style.display = 'none';
+    authContainer.style.display = 'flex';
+    loginForm.style.display = 'block';
+    registerForm.style.display = 'none';
+  }
+
+  function showProfileSetup() {
+    authContainer.style.display = 'none';
+    profileSetup.style.display = 'flex';
+  }
+
+  function showApp() {
+    profileSetup.style.display = 'none';
+    authContainer.style.display = 'none';
+    app.style.display = 'block';
+    
+    adminAccessBtn.style.display = isAdmin ? 'none' : 'block';
+    addMemberBtn.style.display = isAdmin ? 'block' : 'none';
+    
+    // Start listening for member updates
+    subscribeToMembers((membersList) => {
+      members = membersList;
+      renderCards();
+    });
+    
+    createGroundSmash(app);
+  }
+
   function renderCards() {
     cardsContainer.innerHTML = '';
+    
     members.forEach(member => {
-      const isBlack = (member.name.toLowerCase() === 'zen'); // Zen is black piece
-
       const card = document.createElement('div');
       card.className = 'flip-card';
-      card.title = member.title;
-
+      card.title = member.name;
+      
       card.innerHTML = `
         <div class="flip-card-inner">
           <div class="flip-card-front">
-            ${member.pic ? `<img src="${member.pic}" alt="${member.name}" class="member-pic" />` : createPieceSVG(member.type, isBlack)}
-            <div class="title-text">${member.title.split(' - ')[0]} -</div>
-            <div class="title-text">${member.title.split(' - ')[1]}</div>
+            <div class="title-text">${member.name}</div>
+            <div class="level-text">Level: ${member.level}</div>
           </div>
           <div class="flip-card-back">
-            <div>${member.title}</div>
+            <div>${member.name}</div>
             <div class="level-text">Level: ${member.level}</div>
-            <button class="remove-btn" data-id="${member.id}">Remove</button>
+            ${isAdmin ? `<button class="remove-btn" data-id="${member.id}">Remove</button>` : ''}
           </div>
-        </div>
-      `;
-
+        </div>`;
+      
       cardsContainer.appendChild(card);
     });
+    
+    // Add event listeners to remove buttons
+    if (isAdmin) {
+      document.querySelectorAll('.remove-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          removeMember(e.target.dataset.id).catch(error => {
+            showError('admin-error', error.message);
+          });
+        });
+      });
+    }
+  }
 
-    // Remove button event
-    document.querySelectorAll('.remove-btn').forEach(btn => {
-      btn.onclick = e => {
-        const id = parseInt(e.target.dataset.id);
-        members = members.filter(m => m.id !== id);
-        saveMembers();
-        renderCards();
-      };
+  // Animation functions
+  function createGroundSmash(container) {
+    const smash = document.createElement('div');
+    smash.className = 'ground-smash';
+    smash.innerHTML = '<div class="ground-smash-effect"></div>';
+    container.appendChild(smash);
+    
+    setTimeout(() => {
+      smash.remove();
+    }, 1000);
+  }
+
+  function createOrbitingObjects() {
+    const orbitContainer = document.querySelector('.orbit-container');
+    orbitContainer.style.opacity = '1';
+    
+    const orbiters = document.querySelectorAll('.orbiter');
+    orbiters.forEach((orbiter, index) => {
+      const randomSpeed = 8 + Math.random() * 4;
+      const randomSize = 10 + Math.random() * 10;
+      orbiter.style.animationDuration = `${randomSpeed}s`;
+      orbiter.style.width = `${randomSize}px`;
+      orbiter.style.height = `${randomSize}px`;
     });
   }
 
-  // Show/hide add member form
-  addMemberBtn.onclick = () => {
-    addMemberForm.style.display = addMemberForm.style.display === 'block' ? 'none' : 'block';
-  };
+  // Event Handlers
+  async function handleLogin(e) {
+    e.preventDefault();
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const email = `${username}@ageofheroes.com`;
+    
+    try {
+      await login(email, password);
+    } catch (error) {
+      showError('login-error', error.message);
+    }
+  }
 
-  // Add member form submit
-  addMemberForm.onsubmit = e => {
+  async function handleRegister(e) {
+    e.preventDefault();
+    const username = document.getElementById('reg-username').value.trim();
+    const password = document.getElementById('reg-password').value;
+    const confirmPassword = document.getElementById('reg-confirm-password').value;
+    const level = parseInt(document.getElementById('reg-level').value);
+    const email = `${username}@ageofheroes.com`;
+    
+    if (password !== confirmPassword) {
+      showError('register-error', 'Passwords do not match');
+      return;
+    }
+    
+    try {
+      await register(email, password, username);
+      showSuccess('register-success', 'Registration successful! Complete your profile.');
+      setTimeout(showProfileSetup, 1500);
+    } catch (error) {
+      showError('register-error', error.message);
+    }
+  }
+
+  async function handleProfileSetup(e) {
+    e.preventDefault();
+    const displayName = document.getElementById('profile-name').value.trim();
+    const pieceType = document.getElementById('profile-type').value;
+    const file = document.getElementById('profile-pic-upload').files[0];
+    
+    try {
+      let profilePicUrl = '';
+      if (file) {
+        profilePicUrl = await uploadProfilePicture(file);
+      }
+      
+      await updateProfile({
+        displayName,
+        pieceType,
+        ...(profilePicUrl && { profilePic: profilePicUrl })
+      });
+      
+      showApp();
+    } catch (error) {
+      showError('profile-error', error.message);
+    }
+  }
+
+  async function handleAddMember(e) {
     e.preventDefault();
     const name = nameInput.value.trim();
-    const level = Math.min(Math.max(parseInt(levelInput.value), 0), MAX_LEVEL);
+    const level = parseInt(levelInput.value);
     const type = typeSelect.value;
-    if(name && !isNaN(level)) {
-      const newMember = {
-        id: Date.now(),
-        title: `${name} - ${name}`, // simple for new members: name - name
-        name,
-        level,
-        type,
-        pic: "" // no pic by default
-      };
-      members.push(newMember);
-      saveMembers();
-      renderCards();
+    
+    try {
+      await addMember({ name, level, type });
       addMemberForm.reset();
       addMemberForm.style.display = 'none';
+      createGroundSmash(cardsContainer);
+    } catch (error) {
+      showError('admin-error', error.message);
     }
-  };
+  }
 
-  // Start button shows app and hides menu
-  startBtn.onclick = () => {
-    mainMenu.style.display = 'none';
-    app.style.display = 'block';
-  };
+  async function handleAdminKeySubmit(e) {
+    e.preventDefault();
+    const key = document.getElementById('admin-key').value;
+    
+    try {
+      const isValid = await verifyAdminKey(key);
+      if (isValid) {
+        isAdmin = true;
+        hideAdminKeyForm();
+        updateAdminFeatures();
+        showSuccessMessage('Admin access granted!');
+      } else {
+        throw new Error('Invalid admin key');
+      }
+    } catch (error) {
+      showError('admin-error', error.message);
+      adminKeyForm.classList.add('shake');
+      setTimeout(() => adminKeyForm.classList.remove('shake'), 500);
+    }
+  }
 
-  // Init
-  loadMembers();
-  renderCards();
+  function hideAdminKeyForm() {
+    adminKeyForm.style.display = 'none';
+    document.getElementById('admin-key').value = '';
+    document.getElementById('admin-error').style.display = 'none';
+  }
+
+  function updateAdminFeatures() {
+    addMemberBtn.style.display = isAdmin ? 'block' : 'none';
+    adminAccessBtn.style.display = isAdmin ? 'none' : 'block';
+    renderCards();
+  }
+
+  function showSuccessMessage(message) {
+    const element = document.createElement('div');
+    element.className = 'success-message';
+    element.textContent = message;
+    element.style.position = 'fixed';
+    element.style.top = '20px';
+    element.style.left = '50%';
+    element.style.transform = 'translateX(-50%)';
+    element.style.zIndex = '1000';
+    document.body.appendChild(element);
+    
+    setTimeout(() => {
+      element.remove();
+    }, 3000);
+  }
+
+  function showError(elementId, message) {
+    const element = document.getElementById(elementId);
+    element.textContent = message;
+    element.style.display = 'block';
+    setTimeout(() => {
+      element.style.display = 'none';
+    }, 3000);
+  }
+
+  function showSuccess(elementId, message) {
+    const element = document.getElementById(elementId);
+    element.textContent = message;
+    element.style.display = 'block';
+    setTimeout(() => {
+      element.style.display = 'none';
+    }, 3000);
+  }
+
+  function toggleAuthForms(form) {
+    if (form === 'register') {
+      loginForm.style.display = 'none';
+      registerForm.style.display = 'block';
+    } else {
+      loginForm.style.display = 'block';
+      registerForm.style.display = 'none';
+    }
+  }
+
+  function toggleAddMemberForm() {
+    addMemberForm.style.display = addMemberForm.style.display === 'block' ? 'none' : 'block';
+  }
+
+  function setupEventListeners() {
+    // Main menu buttons
+    playBtn.addEventListener('click', showAuthContainer);
+    adminLoginBtn.addEventListener('click', () => {
+      isAdmin = false;
+      adminKeyForm.style.display = 'block';
+    });
+    
+    // Auth forms
+    loginForm.addEventListener('submit', handleLogin);
+    registerForm.addEventListener('submit', handleRegister);
+    registerLink.addEventListener('click', () => toggleAuthForms('register'));
+    loginLink.addEventListener('click', () => toggleAuthForms('login'));
+    
+    // Profile setup
+    profileForm.addEventListener('submit', handleProfileSetup);
+    profilePicUpload.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          profilePicPreview.src = event.target.result;
+          profilePicPreview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+    
+    // Admin key form
+    adminKeyForm.addEventListener('submit', handleAdminKeySubmit);
+    closeAdminForm.addEventListener('click', hideAdminKeyForm);
+    
+    // App functionality
+    adminAccessBtn.addEventListener('click', () => {
+      isAdmin = false;
+      adminKeyForm.style.display = 'block';
+    });
+    addMemberBtn.addEventListener('click', toggleAddMemberForm);
+    addMemberForm.addEventListener('submit', handleAddMember);
+    
+    // Card flip for mobile
+    document.addEventListener('click', (e) => {
+      if (!window.matchMedia('(hover: hover)').matches) {
+        const flipCard = e.target.closest('.flip-card');
+        if (flipCard) {
+          flipCard.classList.toggle('flipped');
+        }
+      }
+    });
+
+    // Ripple effect for play button
+    playBtn.addEventListener('click', function(e) {
+      const x = e.clientX - e.target.getBoundingClientRect().left;
+      const y = e.clientY - e.target.getBoundingClientRect().top;
+      
+      const ripple = document.createElement('span');
+      ripple.className = 'ripple';
+      ripple.style.left = `${x}px`;
+      ripple.style.top = `${y}px`;
+      
+      this.appendChild(ripple);
+      
+      setTimeout(() => {
+        ripple.remove();
+      }, 1000);
+    });
+  }
+
+  // Initialize the app
+  document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
