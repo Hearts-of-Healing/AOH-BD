@@ -159,129 +159,36 @@
             </div>
         </div>
     </nav>
-<body class="demon-theme text-white min-h-screen p-4">
-    <div class="max-w-6xl mx-auto">
-        <h1 class="text-4xl font-bold text-center mb-8 demon-text">BD Clan Clicker Minigame</h1>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <!-- Targets Section -->
-            <div class="demon-card p-6 rounded-lg">
-                <h2 class="text-2xl font-bold mb-6 demon-text">Targets</h2>
-                
-                <div class="grid grid-cols-2 gap-4">
-                    <!-- Zen -->
-                    <div class="target text-center p-4 rounded-lg bg-gray-800" id="zen-target" onclick="attack('Zen')">
-                        <img src="https://via.placeholder.com/150/ff4d4d/ffffff?text=Zen" alt="Zen" class="w-24 h-24 mx-auto rounded-full mb-2">
-                        <h3 class="text-xl font-bold">Zen</h3>
-                        <div class="progress-bar mt-2">
-                            <div class="progress-fill" id="zen-health" style="width: 100%"></div>
-                        </div>
-                        <p class="text-sm mt-1">Health: <span id="zen-health-text">100</span>/100</p>
-                    </div>
-                    
-                    <!-- Kyle -->
-                    <div class="target text-center p-4 rounded-lg bg-gray-800" id="kyle-target" onclick="attack('Kyle')">
-                        <img src="https://via.placeholder.com/150/4d79ff/ffffff?text=Kyle" alt="Kyle" class="w-24 h-24 mx-auto rounded-full mb-2">
-                        <h3 class="text-xl font-bold">Kyle</h3>
-                        <div class="progress-bar mt-2">
-                            <div class="progress-fill" id="kyle-health" style="width: 100%"></div>
-                        </div>
-                        <p class="text-sm mt-1">Health: <span id="kyle-health-text">100</span>/100</p>
-                    </div>
-                    
-                    <!-- Levi/Dark -->
-                    <div class="target text-center p-4 rounded-lg bg-gray-800" id="levi-target" onclick="attack('Levi')">
-                        <img src="https://via.placeholder.com/150/aa00ff/ffffff?text=Levi" alt="Levi/Dark" class="w-24 h-24 mx-auto rounded-full mb-2">
-                        <h3 class="text-xl font-bold">Levi/Dark</h3>
-                        <div class="progress-bar mt-2">
-                            <div class="progress-fill" id="levi-health" style="width: 100%"></div>
-                        </div>
-                        <p class="text-sm mt-1">Health: <span id="levi-health-text">100</span>/100</p>
-                    </div>
-                    
-                    <!-- Ban -->
-                    <div class="target text-center p-4 rounded-lg bg-gray-800" id="ban-target" onclick="attack('Ban')">
-                        <img src="https://via.placeholder.com/150/00aa00/ffffff?text=Ban" alt="Ban" class="w-24 h-24 mx-auto rounded-full mb-2">
-                        <h3 class="text-xl font-bold">Ban</h3>
-                        <div class="progress-bar mt-2">
-                            <div class="progress-fill" id="ban-health" style="width: 100%"></div>
-                        </div>
-                        <p class="text-sm mt-1">Health: <span id="ban-health-text">100</span>/100</p>
-                    </div>
-                </div>
-                
-                <div class="mt-6">
-                    <h3 class="text-xl font-bold mb-2">Select Your Killer:</h3>
-                    <select id="killer-select" class="w-full p-2 rounded bg-gray-800 border border-gray-700">
-                        <option value="Keen">Keen</option>
-                        <option value="Kyle">Kyle</option>
-                        <option value="Tri">Tri</option>
-                        <option value="Soldier">Soldier</option>
-                        <option value="Zen">Zen</option>
-                        <option value="Ban">Ban</option>
-                        <option value="Void">Void</option>
-                        <option value="BD_Ravynthal">BD_Ravynthal</option>
-                        <option value="Yosh">Yosh</option>
-                        <option value="DUCK">DUCK</option>
-                    </select>
-                </div>
-            </div>
-            
-            <!-- Stats Section -->
-            <div class="demon-card p-6 rounded-lg">
-                <h2 class="text-2xl font-bold mb-6 demon-text">Kill Statistics</h2>
-                
-                <div class="grid grid-cols-4 gap-4 text-center mb-8">
-                    <div>
-                        <p class="text-gray-400">Total Kills</p>
-                        <p class="kill-count" id="total-kills">0</p>
-                    </div>
-                    <div>
-                        <p class="text-gray-400">Zen Kills</p>
-                        <p class="kill-count" id="zen-kills">0</p>
-                    </div>
-                    <div>
-                        <p class="text-gray-400">Kyle Kills</p>
-                        <p class="kill-count" id="kyle-kills">0</p>
-                    </div>
-                    <div>
-                        <p class="text-gray-400">Levi Kills</p>
-                        <p class="kill-count" id="levi-kills">0</p>
-                    </div>
-                    <div>
-                        <p class="text-gray-400">Ban Kills</p>
-                        <p class="kill-count" id="ban-kills">0</p>
-                    </div>
-                </div>
-                
-                <h3 class="text-xl font-bold mb-4">Kill Details</h3>
-                <div class="overflow-x-auto">
-                    <table class="stats-table w-full">
-                        <thead>
-                            <tr>
-                                <th>Killer</th>
-                                <th>Victim</th>
-                                <th>Kills</th>
-                            </tr>
-                        </thead>
-                        <tbody id="kill-details">
-                            <!-- Will be populated by JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
-                
-                <div class="mt-6 flex justify-between">
-                    <button onclick="resetStats()" class="demon-btn py-2 px-4 rounded-lg font-bold transition duration-300 hover:bg-red-700">
-                        <i class="fas fa-redo mr-2"></i> Reset Stats
-                    </button>
-                    <button onclick="exportStats()" class="bg-gray-700 hover:bg-gray-600 py-2 px-4 rounded-lg font-bold transition duration-300">
-                        <i class="fas fa-download mr-2"></i> Export Stats
-                    </button>
-                </div>
-            </div>
-        </div>
+<!-- Filters and Killer Selector -->
+    <div class="mb-4">
+        <label for="level-filter" class="block mb-1 font-semibold">Filter by Level:</label>
+        <select id="level-filter" class="text-black p-2 rounded w-full">
+            <option value="all">All Levels</option>
+        </select>
     </div>
-       <script>
+
+    <div class="mb-4">
+        <label for="sort-method" class="block mb-1 font-semibold">Sort:</label>
+        <select id="sort-method" class="text-black p-2 rounded w-full">
+            <option value="default">Sort: Default</option>
+            <option value="level-asc">Sort: Level (Low → High)</option>
+            <option value="level-desc">Sort: Level (High → Low)</option>
+            <option value="name-asc">Sort: Name (A → Z)</option>
+        </select>
+    </div>
+
+    <div class="mb-4">
+        <label for="killer-select" class="block mb-1 font-semibold">Select Killer:</label>
+        <select id="killer-select" class="text-black p-2 rounded w-full">
+            <option value="" disabled selected>Loading...</option>
+        </select>
+    </div>
+
+    <button id="export-members" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded mb-4 hidden">
+      Export Members List
+    </button>
+
+    <script>
         const gameState = {
             targets: {
                 Zen: { health: 100, maxHealth: 100 },
@@ -323,9 +230,112 @@
                 renderKillDetails();
             });
 
+            loadMemberList();
+        }
+
+        function loadMemberList() {
             const killerSelect = document.getElementById('killer-select');
-            killerSelect.value = gameState.currentKiller;
-            killerSelect.addEventListener('change', function() {
+            const filterSelect = document.getElementById('level-filter');
+            const sortSelect = document.getElementById('sort-method');
+            const exportBtn = document.getElementById('export-members');
+            const membersRef = database.ref('clanData/members');
+
+            let allMembers = [];
+
+            function populateFilterOptions() {
+                for (let min = 0; min < 20000; min += 1000) {
+                    const max = min + 1000;
+                    const option = document.createElement('option');
+                    option.value = `${min}-${max}`;
+                    option.textContent = `${min}-${max}`;
+                    filterSelect.appendChild(option);
+                }
+            }
+
+            function updateKillerDropdown(filteredMembers) {
+                killerSelect.innerHTML = '';
+
+                if (filteredMembers.length === 0) {
+                    const opt = document.createElement('option');
+                    opt.textContent = 'No members found';
+                    killerSelect.appendChild(opt);
+                    return;
+                }
+
+                filteredMembers.forEach(member => {
+                    const option = document.createElement('option');
+                    option.value = member.username;
+                    option.textContent = `${member.username} (${member.level})`;
+                    killerSelect.appendChild(option);
+                });
+
+                if (gameState.currentKiller) {
+                    killerSelect.value = gameState.currentKiller;
+                }
+            }
+
+            function applyFilter() {
+                const selectedRange = filterSelect.value;
+                localStorage.setItem('bd-level-filter', selectedRange);
+
+                let filtered = allMembers;
+
+                if (selectedRange !== "all") {
+                    const [min, max] = selectedRange.split('-').map(Number);
+                    filtered = filtered.filter(m => m.level >= min && m.level < max);
+                }
+
+                const sortValue = sortSelect.value;
+                filtered.sort((a, b) => {
+                    switch (sortValue) {
+                        case 'level-asc': return a.level - b.level;
+                        case 'level-desc': return b.level - a.level;
+                        case 'name-asc': return a.username.localeCompare(b.username);
+                        default: return 0;
+                    }
+                });
+
+                updateKillerDropdown(filtered);
+            }
+
+            filterSelect.addEventListener('change', applyFilter);
+            sortSelect.addEventListener('change', applyFilter);
+
+            membersRef.once('value').then(snapshot => {
+                const members = snapshot.val();
+                if (!Array.isArray(members)) return;
+
+                allMembers = members;
+                populateFilterOptions();
+
+                const savedFilter = localStorage.getItem('bd-level-filter');
+                if (savedFilter) {
+                    filterSelect.value = savedFilter;
+                }
+
+                applyFilter();
+
+                // Show export button if admin
+                database.ref('clanData/adminKey').once('value').then(snapshot => {
+                    const adminKey = snapshot.val();
+                    if (gameState.currentKiller === adminKey) {
+                        exportBtn.classList.remove('hidden');
+                    }
+                });
+
+                exportBtn.addEventListener('click', () => {
+                    const blob = new Blob([JSON.stringify(allMembers, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'bd_clan_members.json';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                });
+            });
+
+            killerSelect.addEventListener('change', function () {
                 gameState.currentKiller = this.value;
             });
         }
@@ -371,7 +381,7 @@
             saveStats();
 
             setTimeout(() => {
-                target.health = target.maxHealth;
+                gameState.targets[targetName].health = gameState.targets[targetName].maxHealth;
                 updateTargetUI(targetName);
                 targetElement.classList.remove('death-animation');
                 targetElement.classList.add('respawn-animation');
@@ -391,6 +401,7 @@
 
         function renderKillDetails() {
             const tbody = document.getElementById('kill-details');
+            if (!tbody) return;
             tbody.innerHTML = '';
             for (const key in gameState.stats.killDetails) {
                 const [killer, victim] = key.split('-');
