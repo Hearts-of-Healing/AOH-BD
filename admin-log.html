@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BD Admin Logs</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #1a1a2e;
+      color: #ffffff;
+      padding: 2rem;
+    }
+    .log-entry {
+      background-color: #16213e;
+      margin-bottom: 10px;
+      padding: 10px;
+      border-left: 4px solid #ff4d4d;
+      border-radius: 5px;
+    }
+    .hidden { display: none; }
+    .center { text-align: center; margin-top: 3rem; }
+    .input-box {
+      background: #0f0f2e;
+      border: 1px solid #ff4d4d;
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+    }
+    .btn {
+      padding: 10px 20px;
+      background-color: #ff4d4d;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>🛡️ BD Admin Log Viewer</h1>
+  <div id="login" class="center">
+    <p>Enter your Roblox username:</p>
+    <input type="text" id="username" class="input-box" placeholder="Roblox username"/>
+    <br />
+    <button class="btn" onclick="verifyViewer()">View Logs</button>
+  </div>
+
+  <div id="logs" class="hidden">
+    <h2>📜 Admin Logs</h2>
+    <div id="log-list"></div>
+  </div>
+
+  <div id="denied" class="hidden center">
+    <h3>❌ Access Denied</h3>
+    <p>You do not have permission to view this page.</p>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+  <script>
+    // Your Firebase config (same as in index.html)
+    const firebaseConfig = {
+      apiKey: "AIzaSyBDgadn_l0VLJmgCPzziGbwbXYaIfhn0vQ",
+      authDomain: "aoh-bd-clan.firebaseapp.com",
+      databaseURL: "https://aoh-bd-clan-default-rtdb.firebaseio.com/",
+      projectId: "aoh-bd-clan",
+      storageBucket: "aoh-bd-clan.firebasestorage.app",
+      messagingSenderId: "824398865971",
+      appId: "1:824398865971:web:139890878f47e251ad6546",
+      measurementId: "G-4V15NCH2RH"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    function verifyViewer() {
+      const user = document.getElementById("username").value.trim();
+      if (user === "RB_Ravynthal") {
+        document.getElementById("login").classList.add("hidden");
+        document.getElementById("logs").classList.remove("hidden");
+        loadLogs();
+      } else {
+        document.getElementById("login").classList.add("hidden");
+        document.getElementById("denied").classList.remove("hidden");
+      }
+    }
+
+    function loadLogs() {
+      const logList = document.getElementById("log-list");
+      db.ref('adminLogs').once('value', snapshot => {
+        if (!snapshot.exists()) {
+          logList.innerHTML = "<p>No logs available.</p>";
+          return;
+        }
+
+        const logs = snapshot.val();
+        Object.values(logs).forEach(log => {
+          const div = document.createElement("div");
+          div.className = "log-entry";
+          div.innerHTML = `<strong>${log.username}</strong> - ${log.action} <br><small>${log.time}</small>`;
+          logList.appendChild(div);
+        });
+      });
+    }
+  </script>
+</body>
+</html>
