@@ -101,6 +101,9 @@
             <a href="minigame.html" class="nav-link text-white">
               <i class="fas fa-gamepad mr-1"></i> Minigame
             </a>
+            <button onclick="toggleAdminLogin()" class="nav-link text-white ml-4">
+  <i class="fas fa-user-shield mr-1"></i> MiniGame Admin
+</button>
           </div>
         </div>
 
@@ -152,6 +155,19 @@
         <div id="target-error" class="error-message"></div>
       </div>
 
+      <div id="admin-login-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+  <div class="bg-gray-800 p-8 rounded-lg max-w-md w-full">
+    <h2 class="text-2xl font-bold mb-4 text-red-500">Admin Login</h2>
+    <input type="password" id="admin-login-key" placeholder="Enter Admin Key" 
+           class="w-full p-3 mb-4 rounded bg-gray-700 text-white">
+    <button onclick="verifyAdminLogin()" 
+            class="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded">
+      Login
+    </button>
+    <p id="admin-login-error" class="text-red-500 mt-2 hidden"></p>
+  </div>
+</div>
+
       <!-- Stats and Kill Log -->
       <div class="bg-gray-900 p-6 rounded shadow space-y-4">
         <div class="flex justify-between items-center">
@@ -187,6 +203,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
 
   <script>
+    let isAdmin = false;
     const firebaseConfig = {
       apiKey: "AIzaSyBDgadn_l0VLJmgCPzziGbwbXYaIfhn0vQ",
       authDomain: "aoh-bd-clan.firebaseapp.com",
@@ -217,7 +234,7 @@
       // Check for admin access
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('admin') === 'true') {
-        document.getElementById('admin-panel').classList.remove('hidden');
+         document.getElementById('admin-panel').classList.add('hidden');
         document.getElementById('add-target-btn').addEventListener('click', addNewTarget);
       }
 
@@ -263,6 +280,41 @@
           alert("Failed to load targets. Please refresh the page.");
         });
     }
+    // Toggle admin login modal
+function toggleAdminLogin() {
+  const modal = document.getElementById('admin-login-modal');
+  modal.classList.toggle('hidden');
+  document.getElementById('admin-login-key').value = '';
+  document.getElementById('admin-login-error').classList.add('hidden');
+}
+
+// Verify admin login
+async function verifyAdminLogin() {
+  const inputKey = document.getElementById('admin-login-key').value.trim();
+  const errorElement = document.getElementById('admin-login-error');
+  
+  if (!inputKey) {
+    errorElement.textContent = "Please enter an admin key";
+    errorElement.classList.remove('hidden');
+    return;
+  }
+
+  try {
+    const snapshot = await database.ref('adminKey').once('value');
+    if (snapshot.exists() && snapshot.val() === inputKey) {
+      isAdmin = true;
+      document.getElementById('admin-panel').classList.remove('hidden');
+      document.getElementById('admin-login-modal').classList.add('hidden');
+    } else {
+      errorElement.textContent = "Invalid admin key";
+      errorElement.classList.remove('hidden');
+    }
+  } catch (error) {
+    errorElement.textContent = "Error verifying key. Please try again.";
+    errorElement.classList.remove('hidden');
+    console.error("Admin login error:", error);
+  }
+}
 
     // Render targets to the DOM
     function renderTargets() {
