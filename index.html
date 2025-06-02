@@ -520,10 +520,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
-    <!-- Firebase Integration -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
     <script>
         // Firebase configuration
         const firebaseConfig = {
@@ -541,52 +537,72 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // Database functions with error handling
+        // Database functions
         function initializeData() {
-            return new Promise((resolve, reject) => {
-                database.ref('clanData').once('value')
-                    .then(snapshot => {
-                        if (!snapshot.exists()) {
-                            const defaultData = {
-                                members: [
-                                    { username: "Keen", level: 13000 },
-                                    { username: "Kyle", level: 8100 },
-                                    { username: "Tri", level: 5400 },
-                                    { username: "Soldier", level: 5400 },
-                                    { username: "Zen", level: 5000 },
-                                    { username: "Ban", level: 3200 },
-                                    { username: "Void", level: 2100 },
-                                    { username: "BD_Ravynthal", level: 1713 },
-                                    { username: "Yosh", level: 600 },
-                                    { username: "DUCK", level: 490 }
-                                ]
-                            };
-                            
-                            return database.ref('clanData').set(defaultData);
-                        }
-                        return Promise.resolve();
-                    })
-                    .then(() => resolve())
-                    .catch(error => reject(error));
+            const defaultData = {
+                adminKey: "ZenIsTrashBDFR",
+                members: [
+                    { username: "Keen", level: 13000 },
+                    { username: "Kyle", level: 8100 },
+                    { username: "Tri", level: 5400 },
+                    { username: "Soldier", level: 5400 },
+                    { username: "Zen", level: 5000 },
+                    { username: "Ban", level: 3200 },
+                    { username: "Void", level: 2100 },
+                    { username: "BD_Ravynthal", level: 1713 },
+                    { username: "Yosh", level: 600 },
+                    { username: "DUCK", level: 490 }
+                ]
+            };
+
+            // Check if data exists, if not, set default data
+            database.ref('clanData').once('value').then(snapshot => {
+                if (!snapshot.exists()) {
+                    database.ref('clanData').set(defaultData)
+                        .then(() => console.log("✅ Default data initialized!"))
+                        .catch(error => console.error("❌ Error initializing data:", error));
+                }
             });
         }
 
-        function getMembers() {
-            return new Promise((resolve, reject) => {
-                database.ref('clanData/members').once('value')
-                    .then(snapshot => {
-                        if (snapshot.exists()) {
-                            resolve(snapshot.val());
-                        } else {
-                            resolve([]);
-                        }
-                    })
-                    .catch(error => reject(error));
+        function getData(callback) {
+            database.ref('clanData').on('value', snapshot => {
+                callback(snapshot.val());
+            });
+        }
+
+        function saveData(data) {
+            database.ref('clanData').set(data);
+        }
+
+        function getMembers(callback) {
+            getData(data => {
+                callback(data.members);
+            });
+        }
+
+        function getAdminKey(callback) {
+            getData(data => {
+                callback(data.adminKey);
             });
         }
 
         function updateMembers(updatedMembers) {
-            return database.ref('clanData/members').set(updatedMembers);
+            getData(data => {
+                data.members = updatedMembers;
+                saveData(data);
+            });
+        }
+
+        // Test Firebase connection
+        function testFirebaseConnection() {
+            database.ref('test').set({
+                test: "connection working"
+            }).then(() => {
+                console.log("Firebase connection successful");
+            }).catch(error => {
+                console.error("Firebase connection error:", error);
+            });
         }
 
         // Application state
@@ -609,91 +625,319 @@
         const adminNote = document.getElementById('admin-note');
         const mobileMenu = document.querySelector('.mobile-menu');
 
-        // UI Functions with error handling
-        async function renderMembersGrid() {
-            try {
-                membersGrid.innerHTML = '<div class="col-span-full text-center py-8">Loading members...</div>';
-                
-                const members = await getMembers();
-                if (members.length === 0) {
-                    membersGrid.innerHTML = '<div class="col-span-full text-center py-8">No members found</div>';
+        // UI Functions
+        function showAdminNote() {
+            adminNote.style.display = 'block';
+        }
+
+        function hideAdminNote() {
+            adminNote.style.display = 'none';
+        }
+
+        function showAdminAccess() {
+            adminAccessContainer.classList.remove('hidden');
+        }
+
+        function hideAdminAccess() {
+            adminAccessContainer.classList.add('hidden');
+            document.getElementById('admin-key').value = '';
+            document.getElementById('admin-key-error').classList.add('hidden');
+        }
+
+        function verifyAdminKey() {
+            const key = document.getElementById('admin-key').value;
+            
+            if (!key) {
+                document.getElementById('admin-key-error').textContent = "Please enter an admin key";
+                document.getElementById('admin-key-error').classList.remove('hidden');
+                return;
+            }
+            
+            getAdminKey(adminKey => {
+                if (!adminKey) {
+                    console.error("No admin key found in database");
                     return;
                 }
                 
+                if (key === adminKey) {
+                    isAdmin = true;
+                    hideAdminAccess();
+                    showMembersDashboard();
+                    adminControls.classList.remove('hidden');
+                    addMemberBtn.classList.remove('hidden');
+                } else {
+                    document.getElementById('admin-key-error').textContent = "Invalid admin key";
+                    document.getElementById('admin-key-error').classList.remove('hidden');
+                    document.getElementById('admin-key').classList.add('shake');
+                    setTimeout(() => document.getElementById('admin-key').classList.remove('shake'), 500);
+                }
+            });
+        }
+
+        function verifyDashboardAdminKey() {
+            const key = document.getElementById('admin-key-input').value;
+            
+            getAdminKey(adminKey => {
+                if (key === adminKey) {
+                    isAdmin = true;
+                    document.getElementById('admin-key-input').value = '';
+                    adminControls.classList.add('hidden');
+                    addMemberBtn.classList.remove('hidden');
+                    updateAdminUI();
+                } else {
+                    document.getElementById('admin-key-input').classList.add('shake');
+                    setTimeout(() => document.getElementById('admin-key-input').classList.remove('shake'), 500);
+                }
+            });
+        }
+
+        function showMainMenu() {
+            mainMenu.classList.remove('hidden');
+            adminAccessContainer.classList.add('hidden');
+            membersDashboard.classList.add('hidden');
+        }
+
+        function showMembersDashboard() {
+            mainMenu.classList.add('hidden');
+            adminAccessContainer.classList.add('hidden');
+            membersDashboard.classList.remove('hidden');
+            renderMembersGrid();
+        }
+
+        function updateAdminUI() {
+            if (isAdmin) {
+                const memberCards = document.querySelectorAll('.member-card');
+                memberCards.forEach(card => {
+                    if (!card.querySelector('.edit-btn')) {
+                        const editBtn = document.createElement('button');
+                        editBtn.className = 'edit-btn absolute top-2 right-2 bg-yellow-600 hover:bg-yellow-700 text-white p-1 rounded-full transition duration-300';
+                        editBtn.innerHTML = '<i class="fas fa-edit text-xs"></i>';
+                        editBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            const username = card.getAttribute('data-username');
+                            showEditMemberModal(username);
+                        };
+                        card.appendChild(editBtn);
+                    }
+                });
+            } else {
+                const editButtons = document.querySelectorAll('.edit-btn');
+                editButtons.forEach(btn => btn.remove());
+            }
+        }
+
+        function renderMembersGrid() {
+            membersGrid.innerHTML = '';
+            
+            getMembers(members => {
                 const sortedMembers = [...members].sort((a, b) => b.level - a.level);
-                membersGrid.innerHTML = '';
                 
                 sortedMembers.forEach((member, index) => {
-                    const memberCard = createMemberCard(member, index);
+                    const memberCard = document.createElement('div');
+                    memberCard.className = 'member-card demon-card p-6 rounded-lg shadow-lg relative cursor-pointer transition-all duration-300';
+                    memberCard.setAttribute('data-username', member.username);
+                    
+                    if (isAdmin) {
+                        memberCard.classList.add('hover:bg-gray-700');
+                        memberCard.onclick = () => showEditMemberModal(member.username);
+                    }
+                    
+                    let rankClass = 'rank-common';
+                    let progressClass = 'progress-common';
+                    
+                    if (member.level >= 5000) {
+                        rankClass = 'rank-legendary';
+                        progressClass = 'progress-legendary';
+                    } else if (member.level >= 2000) {
+                        rankClass = 'rank-epic';
+                        progressClass = 'progress-epic';
+                    } else if (member.level >= 1000) {
+                        rankClass = 'rank-rare';
+                        progressClass = 'progress-rare';
+                    } else if (member.level >= 500) {
+                        rankClass = 'rank-uncommon';
+                        progressClass = 'progress-uncommon';
+                    }
+                    
+                    const progressPercentage = Math.min(100, (member.level / 15000) * 100);
+                    
+                    memberCard.innerHTML = `
+                        <div class="flex items-center mb-4">
+                            <div class="level-badge ${rankClass}">
+                                ${member.level}
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-xl font-bold">${member.username}</h3>
+                                <p class="text-gray-400">Rank #${index + 1}</p>
+                            </div>
+                        </div>
+                        <div class="w-full bg-gray-700 rounded-full h-2.5">
+                            <div class="${progressClass} h-2.5 rounded-full" style="width: ${progressPercentage}%"></div>
+                        </div>
+                    `;
+                    
                     membersGrid.appendChild(memberCard);
                 });
                 
                 if (isAdmin) {
                     updateAdminUI();
                 }
-            } catch (error) {
-                console.error("Error loading members:", error);
-                membersGrid.innerHTML = '<div class="col-span-full text-center py-8 text-red-500">Error loading members</div>';
-            }
+            });
         }
 
-        function createMemberCard(member, index) {
-            const memberCard = document.createElement('div');
-            memberCard.className = 'member-card demon-card p-6 rounded-lg shadow-lg relative cursor-pointer transition-all duration-300';
-            memberCard.setAttribute('data-username', member.username);
-            
-            if (isAdmin) {
-                memberCard.classList.add('hover:bg-gray-700');
-                memberCard.onclick = () => showEditMemberModal(member.username);
-            }
-            
-            let rankClass = 'rank-common';
-            let progressClass = 'progress-common';
-            
-            if (member.level >= 5000) {
-                rankClass = 'rank-legendary';
-                progressClass = 'progress-legendary';
-            } else if (member.level >= 2000) {
-                rankClass = 'rank-epic';
-                progressClass = 'progress-epic';
-            } else if (member.level >= 1000) {
-                rankClass = 'rank-rare';
-                progressClass = 'progress-rare';
-            } else if (member.level >= 500) {
-                rankClass = 'rank-uncommon';
-                progressClass = 'progress-uncommon';
-            }
-            
-            const progressPercentage = Math.min(100, (member.level / 15000) * 100);
-            
-            memberCard.innerHTML = `
-                <div class="flex items-center mb-4">
-                    <div class="level-badge ${rankClass}">
-                        ${member.level}
-                    </div>
-                    <div class="ml-4">
-                        <h3 class="text-xl font-bold">${member.username}</h3>
-                        <p class="text-gray-400">Rank #${index + 1}</p>
-                    </div>
-                </div>
-                <div class="w-full bg-gray-700 rounded-full h-2.5">
-                    <div class="${progressClass} h-2.5 rounded-full" style="width: ${progressPercentage}%"></div>
-                </div>
-            `;
-            
-            return memberCard;
+        function showAddMemberModal() {
+            addMemberModal.classList.remove('hidden');
+            document.getElementById('new-member-username').value = '';
+            document.getElementById('new-member-level').value = '';
+            document.getElementById('new-username-error').classList.add('hidden');
         }
 
-        // Initialize when DOM is loaded (PLS WORK)
-        document.addEventListener('DOMContentLoaded', async function() {
-            try {
-                await initializeData();
-                setupEventListeners();
+        function hideAddMemberModal() {
+            addMemberModal.classList.add('hidden');
+        }
+
+        function showEditMemberModal(username) {
+            if (!isAdmin) return;
+            
+            getMembers(members => {
+                const member = members.find(m => m.username === username);
+                if (!member) return;
+                
+                currentMember = member;
+                
+                document.getElementById('edit-member-username').value = member.username;
+                document.getElementById('edit-member-level').value = member.level;
+                editMemberModal.classList.remove('hidden');
+            });
+        }
+
+        function hideEditMemberModal() {
+            editMemberModal.classList.add('hidden');
+            currentMember = null;
+        }
+
+        function addNewMember() {
+            const username = document.getElementById('new-member-username').value.trim();
+            const level = parseInt(document.getElementById('new-member-level').value);
+            
+            if (!username) {
+                document.getElementById('new-username-error').textContent = "Username is required";
+                document.getElementById('new-username-error').classList.remove('hidden');
+                document.getElementById('new-member-username').classList.add('shake');
+                setTimeout(() => document.getElementById('new-member-username').classList.remove('shake'), 500);
+                return;
+            }
+            
+            getMembers(members => {
+                const usernameExists = members.some(m => m.username.toLowerCase() === username.toLowerCase());
+                if (usernameExists) {
+                    document.getElementById('new-username-error').textContent = "Username already exists";
+                    document.getElementById('new-username-error').classList.remove('hidden');
+                    document.getElementById('new-member-username').classList.add('shake');
+                    setTimeout(() => document.getElementById('new-member-username').classList.remove('shake'), 500);
+                    return;
+                }
+                
+                if (!level || level < 1) {
+                    alert("Please enter a valid level");
+                    return;
+                }
+                
+                const newMember = {
+                    username: username,
+                    level: level
+                };
+                
+                const updatedMembers = [...members, newMember];
+                updateMembers(updatedMembers);
+                
+                hideAddMemberModal();
                 renderMembersGrid();
-            } catch (error) {
-                console.error("Initialization error:", error);
-                alert("Failed to initialize application. Please refresh the page.");
+            });
+        }
+
+        function updateMemberLevel() {
+            const newLevel = parseInt(document.getElementById('edit-member-level').value);
+            
+            if (!newLevel || newLevel < 1) {
+                alert("Please enter a valid level");
+                return;
             }
+            
+            getMembers(members => {
+                const memberIndex = members.findIndex(m => m.username === currentMember.username);
+                if (memberIndex !== -1) {
+                    const updatedMembers = [...members];
+                    updatedMembers[memberIndex].level = newLevel;
+                    updateMembers(updatedMembers);
+                    
+                    hideEditMemberModal();
+                    renderMembersGrid();
+                }
+            });
+        }
+
+        function confirmDeleteMember() {
+            currentAction = 'delete';
+            document.getElementById('confirm-title').textContent = "Delete Member";
+            document.getElementById('confirm-message').textContent = `Are you sure you want to delete ${currentMember.username}? This action cannot be undone.`;
+            confirmModal.classList.remove('hidden');
+        }
+
+        function hideConfirmModal() {
+            confirmModal.classList.add('hidden');
+            currentAction = null;
+        }
+
+        function executeConfirmedAction() {
+            if (currentAction === 'delete' && currentMember) {
+                getMembers(members => {
+                    const memberIndex = members.findIndex(m => m.username === currentMember.username);
+                    if (memberIndex !== -1) {
+                        const updatedMembers = [...members];
+                        updatedMembers.splice(memberIndex, 1);
+                        updateMembers(updatedMembers);
+                        
+                        hideEditMemberModal();
+                        hideConfirmModal();
+                        renderMembersGrid();
+                    }
+                });
+            }
+            
+            currentAction = null;
+            currentMember = null;
+        }
+
+        function logout() {
+            isAdmin = false;
+            membersDashboard.classList.add('hidden');
+            mainMenu.classList.remove('hidden');
+            adminControls.classList.add('hidden');
+            addMemberBtn.classList.add('hidden');
+        }
+
+        function toggleMobileMenu() {
+            mobileMenu.classList.toggle('open');
+        }
+
+        // Event Listeners
+        function setupEventListeners() {
+            if (playBtn) playBtn.addEventListener('click', showMembersDashboard);
+            if (adminBtn) adminBtn.addEventListener('click', showAdminAccess);
+            if (addMemberBtn) addMemberBtn.addEventListener('click', showAddMemberModal);
+            
+            const secretBtn = document.querySelector('.secret-button');
+            if (secretBtn) {
+                secretBtn.addEventListener('click', showAdminNote);
+            }
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeData();
+            setupEventListeners();
+            testFirebaseConnection();
         });
     </script>
 </body>
