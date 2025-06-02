@@ -26,6 +26,14 @@
     .btn {
       @apply bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded;
     }
+    .admin-panel {
+      display: none;
+    }
+    .error-message {
+      color: #ef4444;
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+    }
   </style>
 </head>
 <body class="text-white min-h-screen p-4">
@@ -45,67 +53,28 @@
   <div class="mt-24 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
     <!-- Target Sections -->
     <div id="targets" class="space-y-6">
-      <!-- Each target -->
-      <div class="bg-gray-800 p-4 rounded shadow" id="target-Zen">
-        <div class="flex justify-between items-center mb-2">
-          <h2 class="text-xl font-bold">Zen</h2>
-          <button onclick="attack('Zen')" class="btn">Attack</button>
-        </div>
-        <div class="health-bar">
-          <div class="health-fill" id="zen-health"></div>
-        </div>
-        <div class="text-sm mt-1" id="zen-health-text">100</div>
-      </div>
-      <div class="bg-gray-800 p-4 rounded shadow" id="target-Kyle">
-        <div class="flex justify-between items-center mb-2">
-          <h2 class="text-xl font-bold">Kyle</h2>
-          <button onclick="attack('Kyle')" class="btn">Attack</button>
-        </div>
-        <div class="health-bar">
-          <div class="health-fill" id="kyle-health"></div>
-        </div>
-        <div class="text-sm mt-1" id="kyle-health-text">100</div>
-      </div>
-      <div class="bg-gray-800 p-4 rounded shadow" id="target-Levi">
-        <div class="flex justify-between items-center mb-2">
-          <h2 class="text-xl font-bold">Levi</h2>
-          <button onclick="attack('Levi')" class="btn">Attack</button>
-        </div>
-        <div class="health-bar">
-          <div class="health-fill" id="levi-health"></div>
-        </div>
-        <div class="text-sm mt-1" id="levi-health-text">100</div>
-      </div>
-      <div class="bg-gray-800 p-4 rounded shadow" id="target-Ban">
-        <div class="flex justify-between items-center mb-2">
-          <h2 class="text-xl font-bold">Ban</h2>
-          <button onclick="attack('Ban')" class="btn">Attack</button>
-        </div>
-        <div class="health-bar">
-          <div class="health-fill" id="ban-health"></div>
-        </div>
-        <div class="text-sm mt-1" id="ban-health-text">100</div>
-      </div>
+      <!-- Targets will be dynamically loaded -->
     </div>
-      
-    <div id="admin-panel" class="p-4 bg-gray-800 rounded-lg mb-4">
-  <h2 class="text-xl font-bold mb-2 text-white">Admin Panel</h2>
-  <input id="new-target-name" type="text" placeholder="Enter name"
-    class="p-2 rounded mr-2 text-black" />
-  <button id="add-target-btn"
-    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
-    Add Target
-  </button>
-</div>
+    
+    <!-- Admin Panel (hidden by default) -->
+    <div id="admin-panel" class="p-4 bg-gray-800 rounded-lg mb-4 hidden">
+      <h2 class="text-xl font-bold mb-2 text-white">Admin Panel</h2>
+      <input id="new-target-name" type="text" placeholder="Enter name"
+        class="p-2 rounded mr-2 text-black" />
+      <button id="add-target-btn"
+        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
+        Add Target
+      </button>
+      <div id="target-error" class="error-message"></div>
+    </div>
 
     <!-- Stats and Kill Log -->
     <div class="bg-gray-900 p-6 rounded shadow space-y-4">
       <h2 class="text-2xl font-bold text-green-400">Kill Stats</h2>
       <div>Total Kills: <span id="total-kills">0</span></div>
-      <div>Zen Kills: <span id="zen-kills">0</span></div>
-      <div>Kyle Kills: <span id="kyle-kills">0</span></div>
-      <div>Levi Kills: <span id="levi-kills">0</span></div>
-      <div>Ban Kills: <span id="ban-kills">0</span></div>
+      <div id="individual-kills">
+        <!-- Individual kill stats will be loaded here -->
+      </div>
       <table class="w-full text-sm mt-4">
         <thead>
           <tr>
@@ -125,58 +94,150 @@
 
   <script>
     const firebaseConfig = {
-    apiKey: "AIzaSyBDgadn_l0VLJmgCPzziGbwbXYaIfhn0vQ",
-    authDomain: "aoh-bd-clan.firebaseapp.com",
-    databaseURL: "https://aoh-bd-clan-default-rtdb.firebaseio.com/",
-    projectId: "aoh-bd-clan",
-    storageBucket: "aoh-bd-clan.firebasestorage.app",
-    messagingSenderId: "824398865971",
-    appId: "1:824398865971:web:139890878f47e251ad6546",
-    measurementId: "G-4V15NCH2RH"
+      apiKey: "AIzaSyBDgadn_l0VLJmgCPzziGbwbXYaIfhn0vQ",
+      authDomain: "aoh-bd-clan.firebaseapp.com",
+      databaseURL: "https://aoh-bd-clan-default-rtdb.firebaseio.com/",
+      projectId: "aoh-bd-clan",
+      storageBucket: "aoh-bd-clan.firebasestorage.app",
+      messagingSenderId: "824398865971",
+      appId: "1:824398865971:web:139890878f47e251ad6546",
+      measurementId: "G-4V15NCH2RH"
     };
+    
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
     const gameState = {
       currentKiller: "Zen",
-      targets: {
-        Zen: { health: 100, maxHealth: 100 },
-        Kyle: { health: 100, maxHealth: 100 },
-        Levi: { health: 100, maxHealth: 100 },
-        Ban: { health: 100, maxHealth: 100 },
-      },
+      targets: {}, // Will be loaded from Firebase
       stats: {
         totalKills: 0,
-        zenKills: 0,
-        kyleKills: 0,
-        leviKills: 0,
-        banKills: 0,
         killDetails: {}
       }
     };
 
-    document.getElementById('killer-select').addEventListener('change', (e) => {
-      gameState.currentKiller = e.target.value;
-    });
+    // Initialize the game
+    function initGame() {
+      // Check for admin access
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('admin') === 'true') {
+        document.getElementById('admin-panel').classList.remove('hidden');
+        document.getElementById('add-target-btn').addEventListener('click', addNewTarget);
+      }
 
+      // Load targets and stats
+      loadTargets();
+      loadStats();
+      
+      // Set up killer select
+      document.getElementById('killer-select').addEventListener('change', (e) => {
+        gameState.currentKiller = e.target.value;
+      });
+    }
+
+    // Load targets from Firebase
+    function loadTargets() {
+      database.ref('minigameTargets').once('value')
+        .then(snapshot => {
+          if (snapshot.exists()) {
+            gameState.targets = snapshot.val();
+            renderTargets();
+          } else {
+            // Initialize with default targets if none exist
+            const defaultTargets = {
+              Zen: { health: 100, maxHealth: 100 },
+              Kyle: { health: 100, maxHealth: 100 },
+              Levi: { health: 100, maxHealth: 100 },
+              Ban: { health: 100, maxHealth: 100 }
+            };
+            database.ref('minigameTargets').set(defaultTargets)
+              .then(() => {
+                gameState.targets = defaultTargets;
+                renderTargets();
+              });
+          }
+        })
+        .catch(error => {
+          console.error("Error loading targets:", error);
+          alert("Failed to load targets. Please refresh the page.");
+        });
+    }
+
+    // Render targets to the DOM
+    function renderTargets() {
+      const targetsContainer = document.getElementById('targets');
+      targetsContainer.innerHTML = '';
+      
+      for (const [name, data] of Object.entries(gameState.targets)) {
+        const targetDiv = document.createElement('div');
+        targetDiv.className = 'bg-gray-800 p-4 rounded shadow';
+        targetDiv.id = `target-${name}`;
+        
+        targetDiv.innerHTML = `
+          <div class="flex justify-between items-center mb-2">
+            <h2 class="text-xl font-bold">${name}</h2>
+            <button onclick="attack('${name}')" class="btn">Attack</button>
+          </div>
+          <div class="health-bar">
+            <div class="health-fill" id="${name.toLowerCase()}-health" style="width: ${(data.health / data.maxHealth) * 100}%"></div>
+          </div>
+          <div class="text-sm mt-1" id="${name.toLowerCase()}-health-text">${data.health}</div>
+        `;
+        
+        targetsContainer.appendChild(targetDiv);
+      }
+    }
+
+    // Add a new target (admin only)
+    function addNewTarget() {
+      const nameInput = document.getElementById('new-target-name');
+      const name = nameInput.value.trim();
+      const errorElement = document.getElementById('target-error');
+      
+      if (!name) {
+        errorElement.textContent = "Please enter a name";
+        return;
+      }
+      
+      if (gameState.targets[name]) {
+        errorElement.textContent = "Target already exists";
+        return;
+      }
+      
+      // Add new target
+      const newTarget = { health: 100, maxHealth: 100 };
+      gameState.targets[name] = newTarget;
+      
+      // Update Firebase
+      database.ref(`minigameTargets/${name}`).set(newTarget)
+        .then(() => {
+          nameInput.value = '';
+          errorElement.textContent = '';
+          renderTargets();
+        })
+        .catch(error => {
+          console.error("Error adding target:", error);
+          errorElement.textContent = "Failed to add target";
+        });
+    }
+
+    // Attack a target
     function attack(targetName) {
       const target = gameState.targets[targetName];
       if (!target) return;
+      
       target.health -= 10;
+      
       if (target.health <= 0) {
         target.health = target.maxHealth;
-        gameState.stats.totalKills++;
-        gameState.stats[`${targetName.toLowerCase()}Kills`]++;
-        const killer = gameState.currentKiller;
-        const key = `${killer}-${targetName}`;
-        gameState.stats.killDetails[key] = (gameState.stats.killDetails[key] || 0) + 1;
-        saveStats();
-        renderKillDetails();
+        recordKill(targetName);
       }
+      
       updateHealthBar(targetName);
-      updateStatsUI();
+      saveTargets();
     }
 
+    // Update health bar display
     function updateHealthBar(targetName) {
       const target = gameState.targets[targetName];
       const percent = (target.health / target.maxHealth) * 100;
@@ -184,17 +245,74 @@
       document.getElementById(`${targetName.toLowerCase()}-health-text`).textContent = target.health;
     }
 
-    function updateStatsUI() {
-      document.getElementById('total-kills').textContent = gameState.stats.totalKills;
-      document.getElementById('zen-kills').textContent = gameState.stats.zenKills;
-      document.getElementById('kyle-kills').textContent = gameState.stats.kyleKills;
-      document.getElementById('levi-kills').textContent = gameState.stats.leviKills;
-      document.getElementById('ban-kills').textContent = gameState.stats.banKills;
+    // Record a kill
+    function recordKill(targetName) {
+      gameState.stats.totalKills++;
+      
+      const killer = gameState.currentKiller;
+      const key = `${killer}-${targetName}`;
+      gameState.stats.killDetails[key] = (gameState.stats.killDetails[key] || 0) + 1;
+      
+      saveStats();
+      renderKillDetails();
+      updateStatsUI();
     }
 
+    // Load stats from Firebase
+    function loadStats() {
+      database.ref("minigameStats").once("value")
+        .then(snapshot => {
+          if (snapshot.exists()) {
+            gameState.stats = snapshot.val();
+            updateStatsUI();
+            renderKillDetails();
+          }
+        })
+        .catch(error => {
+          console.error("Error loading stats:", error);
+        });
+    }
+
+    // Save stats to Firebase
+    function saveStats() {
+      database.ref("minigameStats").set(gameState.stats)
+        .catch(error => {
+          console.error("Error saving stats:", error);
+        });
+    }
+
+    // Save targets to Firebase
+    function saveTargets() {
+      database.ref("minigameTargets").set(gameState.targets)
+        .catch(error => {
+          console.error("Error saving targets:", error);
+        });
+    }
+
+    // Update stats display
+    function updateStatsUI() {
+      document.getElementById('total-kills').textContent = gameState.stats.totalKills;
+      
+      // Update individual kill counts
+      const individualKillsContainer = document.getElementById('individual-kills');
+      individualKillsContainer.innerHTML = '';
+      
+      for (const targetName in gameState.targets) {
+        const kills = Object.entries(gameState.stats.killDetails)
+          .filter(([key]) => key.endsWith(`-${targetName}`))
+          .reduce((sum, [, count]) => sum + count, 0);
+          
+        const killDiv = document.createElement('div');
+        killDiv.textContent = `${targetName} Kills: ${kills}`;
+        individualKillsContainer.appendChild(killDiv);
+      }
+    }
+
+    // Render kill details table
     function renderKillDetails() {
       const tbody = document.getElementById('kill-details');
       tbody.innerHTML = '';
+      
       for (const [key, count] of Object.entries(gameState.stats.killDetails)) {
         const [killer, victim] = key.split('-');
         const row = `<tr><td>${killer}</td><td>${victim}</td><td>${count}</td></tr>`;
@@ -202,35 +320,21 @@
       }
     }
 
-    function saveStats() {
-      database.ref("minigameStats").set(gameState.stats);
-    }
-
-    function loadStats(callback) {
-      database.ref("minigameStats").once("value").then(snapshot => {
-        callback(snapshot.val());
-      }).catch(err => {
-        console.error("Failed to load stats", err);
-        callback(null);
-      });
-    }
-
+    // Reset all stats
     function resetStats() {
-      if (confirm("Reset all stats?")) {
+      if (confirm("Are you sure you want to reset all stats? This cannot be undone.")) {
         gameState.stats = {
           totalKills: 0,
-          zenKills: 0,
-          kyleKills: 0,
-          leviKills: 0,
-          banKills: 0,
           killDetails: {}
         };
+        
         updateStatsUI();
         renderKillDetails();
         saveStats();
       }
     }
 
+    // Export stats as JSON
     function exportStats() {
       const data = JSON.stringify(gameState.stats, null, 2);
       const blob = new Blob([data], { type: "application/json" });
@@ -242,14 +346,7 @@
       URL.revokeObjectURL(url);
     }
 
-    function initGame() {
-      loadStats((loadedStats) => {
-        if (loadedStats) gameState.stats = loadedStats;
-        updateStatsUI();
-        renderKillDetails();
-      });
-    }
-
+    // Initialize the game when DOM is loaded
     document.addEventListener("DOMContentLoaded", initGame);
   </script>
 </body>
