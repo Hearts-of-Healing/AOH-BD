@@ -34,63 +34,157 @@
       font-size: 0.875rem;
       margin-top: 0.25rem;
     }
+    .coin {
+      color: gold;
+      text-shadow: 0 0 5px rgba(255, 215, 0, 0.7);
+    }
+    /* Navigation styles */
+    .navbar {
+      background-color: rgba(26, 26, 46, 0.9);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255, 77, 77, 0.2);
+    }
+    .nav-link {
+      position: relative;
+      padding: 0.5rem 1rem;
+      transition: all 0.3s ease;
+    }
+    .nav-link:hover {
+      color: #ff4d4d;
+    }
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background-color: #ff4d4d;
+      transition: width 0.3s ease;
+    }
+    .nav-link:hover::after {
+      width: 100%;
+    }
+    .mobile-menu {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+    }
+    .mobile-menu.open {
+      max-height: 500px;
+      transition: max-height 0.3s ease-in;
+    }
   </style>
 </head>
-<body class="text-white min-h-screen p-4">
-  <!-- Navigation Menu -->
-  <nav class="bg-gray-900 p-4 fixed top-0 w-full z-50 shadow-md">
-    <div class="max-w-7xl mx-auto flex justify-between items-center">
-      <div class="text-xl font-bold text-green-400">BD Clan Minigame</div>
-      <select id="killer-select" class="bg-gray-800 text-white p-2 rounded">
-        <option value="Zen">Zen</option>
-        <option value="Kyle">Kyle</option>
-        <option value="Levi">Levi</option>
-        <option value="Ban">Ban</option>
-      </select>
+<body class="text-white min-h-screen overflow-x-hidden">
+  <!-- Navigation Menu (same as index.html) -->
+  <nav class="navbar fixed top-0 w-full z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Logo -->
+        <div class="flex-shrink-0">
+          <span class="text-xl font-bold text-red-500">AOH - BD Clan</span>
+        </div>
+
+        <!-- Desktop Menu -->
+        <div class="hidden md:block">
+          <div class="ml-10 flex items-center space-x-4">
+            <a href="index.html" class="nav-link text-white">
+              <i class="fas fa-home mr-1"></i> Home
+            </a>
+            <a href="#" class="nav-link text-white" onclick="showMembersDashboard()">
+              <i class="fas fa-users mr-1"></i> Members
+            </a>
+            <a href="admin.html" class="nav-link text-white">
+              <i class="fas fa-lock mr-1"></i> Admin
+            </a>
+            <a href="minigame.html" class="nav-link text-white">
+              <i class="fas fa-gamepad mr-1"></i> Minigame
+            </a>
+          </div>
+        </div>
+
+        <!-- Mobile menu button -->
+        <div class="md:hidden">
+          <button onclick="toggleMobileMenu()" class="text-white hover:text-red-400 focus:outline-none">
+            <i class="fas fa-bars text-xl"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu md:hidden bg-gray-900">
+      <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+        <a href="index.html" class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-gray-800">
+          <i class="fas fa-home mr-2"></i> Home
+        </a>
+        <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-gray-800" onclick="showMembersDashboard(); toggleMobileMenu()">
+          <i class="fas fa-users mr-2"></i> Members
+        </a>
+        <a href="admin.html" class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-gray-800">
+          <i class="fas fa-lock mr-2"></i> Admin
+        </a>
+        <a href="minigame.html" class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-gray-800">
+          <i class="fas fa-gamepad mr-2"></i> Minigame
+        </a>
+      </div>
     </div>
   </nav>
 
-  <div class="mt-24 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-    <!-- Target Sections -->
-    <div id="targets" class="space-y-6">
-      <!-- Targets will be dynamically loaded -->
-    </div>
-    
-    <!-- Admin Panel (hidden by default) -->
-    <div id="admin-panel" class="p-4 bg-gray-800 rounded-lg mb-4 hidden">
-      <h2 class="text-xl font-bold mb-2 text-white">Admin Panel</h2>
-      <input id="new-target-name" type="text" placeholder="Enter name"
-        class="p-2 rounded mr-2 text-black" />
-      <button id="add-target-btn"
-        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
-        Add Target
-      </button>
-      <div id="target-error" class="error-message"></div>
-    </div>
-
-    <!-- Stats and Kill Log -->
-    <div class="bg-gray-900 p-6 rounded shadow space-y-4">
-      <h2 class="text-2xl font-bold text-green-400">Kill Stats</h2>
-      <div>Total Kills: <span id="total-kills">0</span></div>
-      <div id="individual-kills">
-        <!-- Individual kill stats will be loaded here -->
+  <!-- Main Content -->
+  <div class="mt-24 p-4">
+    <div class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Target Sections -->
+      <div id="targets" class="space-y-6">
+        <!-- Targets will be dynamically loaded -->
       </div>
-      <table class="w-full text-sm mt-4">
-        <thead>
-          <tr>
-            <th class="text-left">Killer</th>
-            <th class="text-left">Victim</th>
-            <th class="text-left">Count</th>
-          </tr>
-        </thead>
-        <tbody id="kill-details"></tbody>
-      </table>
-      <div class="flex gap-2 mt-4">
-        <button onclick="resetStats()" class="btn bg-red-600 hover:bg-red-700">Reset Stats</button>
-        <button onclick="exportStats()" class="btn bg-green-600 hover:bg-green-700">Export Stats</button>
+      
+      <!-- Admin Panel (hidden by default) -->
+      <div id="admin-panel" class="p-4 bg-gray-800 rounded-lg mb-4 hidden">
+        <h2 class="text-xl font-bold mb-2 text-white">Admin Panel</h2>
+        <input id="new-target-name" type="text" placeholder="Enter name"
+          class="p-2 rounded mr-2 text-black" />
+        <button id="add-target-btn"
+          class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
+          Add Target
+        </button>
+        <div id="target-error" class="error-message"></div>
+      </div>
+
+      <!-- Stats and Kill Log -->
+      <div class="bg-gray-900 p-6 rounded shadow space-y-4">
+        <div class="flex justify-between items-center">
+          <h2 class="text-2xl font-bold text-green-400">Kill Stats</h2>
+          <div class="text-xl">
+            <span class="coin">Coins: <span id="coin-count">0</span></span>
+          </div>
+        </div>
+        
+        <div>Total Kills: <span id="total-kills">0</span></div>
+        <div id="individual-kills">
+          <!-- Individual kill stats will be loaded here -->
+        </div>
+        <table class="w-full text-sm mt-4">
+          <thead>
+            <tr>
+              <th class="text-left">Killer</th>
+              <th class="text-left">Victim</th>
+              <th class="text-left">Count</th>
+            </tr>
+          </thead>
+          <tbody id="kill-details"></tbody>
+        </table>
+        <div class="flex gap-2 mt-4">
+          <button onclick="resetStats()" class="btn bg-red-600 hover:bg-red-700">Reset Stats</button>
+          <button onclick="exportStats()" class="btn bg-green-600 hover:bg-green-700">Export Stats</button>
+        </div>
       </div>
     </div>
   </div>
+
+  <!-- Font Awesome for icons -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
 
   <script>
     const firebaseConfig = {
@@ -109,10 +203,12 @@
 
     const gameState = {
       currentKiller: "Zen",
-      targets: {}, // Will be loaded from Firebase
+      targets: {},
       stats: {
         totalKills: 0,
-        killDetails: {}
+        killDetails: {},
+        coins: 0,
+        killCounts: {} // Track kills per victim for coin rewards
       }
     };
 
@@ -133,6 +229,11 @@
       document.getElementById('killer-select').addEventListener('change', (e) => {
         gameState.currentKiller = e.target.value;
       });
+
+      // Mobile menu toggle
+      window.toggleMobileMenu = function() {
+        document.querySelector('.mobile-menu').classList.toggle('open');
+      };
     }
 
     // Load targets from Firebase
@@ -168,6 +269,24 @@
       const targetsContainer = document.getElementById('targets');
       targetsContainer.innerHTML = '';
       
+      // Create killer select dropdown
+      targetsContainer.innerHTML = `
+        <div class="bg-gray-800 p-4 rounded shadow mb-6">
+          <label for="killer-select" class="block mb-2">Select Killer:</label>
+          <select id="killer-select" class="w-full p-2 rounded bg-gray-700 text-white">
+            ${Object.keys(gameState.targets).map(name => 
+              `<option value="${name}">${name}</option>`
+            ).join('')}
+          </select>
+        </div>
+      `;
+      
+      // Add event listener for killer select
+      document.getElementById('killer-select').addEventListener('change', (e) => {
+        gameState.currentKiller = e.target.value;
+      });
+      
+      // Create target cards
       for (const [name, data] of Object.entries(gameState.targets)) {
         const targetDiv = document.createElement('div');
         targetDiv.className = 'bg-gray-800 p-4 rounded shadow';
@@ -188,39 +307,6 @@
       }
     }
 
-    // Add a new target (admin only)
-    function addNewTarget() {
-      const nameInput = document.getElementById('new-target-name');
-      const name = nameInput.value.trim();
-      const errorElement = document.getElementById('target-error');
-      
-      if (!name) {
-        errorElement.textContent = "Please enter a name";
-        return;
-      }
-      
-      if (gameState.targets[name]) {
-        errorElement.textContent = "Target already exists";
-        return;
-      }
-      
-      // Add new target
-      const newTarget = { health: 100, maxHealth: 100 };
-      gameState.targets[name] = newTarget;
-      
-      // Update Firebase
-      database.ref(`minigameTargets/${name}`).set(newTarget)
-        .then(() => {
-          nameInput.value = '';
-          errorElement.textContent = '';
-          renderTargets();
-        })
-        .catch(error => {
-          console.error("Error adding target:", error);
-          errorElement.textContent = "Failed to add target";
-        });
-    }
-
     // Attack a target
     function attack(targetName) {
       const target = gameState.targets[targetName];
@@ -237,17 +323,21 @@
       saveTargets();
     }
 
-    // Update health bar display
-    function updateHealthBar(targetName) {
-      const target = gameState.targets[targetName];
-      const percent = (target.health / target.maxHealth) * 100;
-      document.getElementById(`${targetName.toLowerCase()}-health`).style.width = `${percent}%`;
-      document.getElementById(`${targetName.toLowerCase()}-health-text`).textContent = target.health;
-    }
-
     // Record a kill
     function recordKill(targetName) {
       gameState.stats.totalKills++;
+      
+      // Track kills per victim for coin rewards
+      if (!gameState.stats.killCounts[targetName]) {
+        gameState.stats.killCounts[targetName] = 0;
+      }
+      gameState.stats.killCounts[targetName]++;
+      
+      // Check for coin reward (every 1k kills of a victim)
+      if (gameState.stats.killCounts[targetName] % 1000 === 0) {
+        gameState.stats.coins++;
+        showCoinNotification(targetName);
+      }
       
       const killer = gameState.currentKiller;
       const key = `${killer}-${targetName}`;
@@ -258,12 +348,31 @@
       updateStatsUI();
     }
 
+    // Show coin notification
+    function showCoinNotification(targetName) {
+      const notification = document.createElement('div');
+      notification.className = 'fixed top-4 right-4 bg-yellow-600 text-white px-4 py-2 rounded-lg shadow-lg animate-bounce';
+      notification.innerHTML = `
+        <i class="fas fa-coins mr-2"></i>
+        +1 Coin for 1000 kills of ${targetName}!
+      `;
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        notification.remove();
+      }, 3000);
+    }
+
     // Load stats from Firebase
     function loadStats() {
       database.ref("minigameStats").once("value")
         .then(snapshot => {
           if (snapshot.exists()) {
-            gameState.stats = snapshot.val();
+            gameState.stats = {
+              ...snapshot.val(),
+              // Initialize killCounts if not present
+              killCounts: snapshot.val().killCounts || {}
+            };
             updateStatsUI();
             renderKillDetails();
           }
@@ -281,17 +390,10 @@
         });
     }
 
-    // Save targets to Firebase
-    function saveTargets() {
-      database.ref("minigameTargets").set(gameState.targets)
-        .catch(error => {
-          console.error("Error saving targets:", error);
-        });
-    }
-
     // Update stats display
     function updateStatsUI() {
       document.getElementById('total-kills').textContent = gameState.stats.totalKills;
+      document.getElementById('coin-count').textContent = gameState.stats.coins;
       
       // Update individual kill counts
       const individualKillsContainer = document.getElementById('individual-kills');
@@ -306,44 +408,6 @@
         killDiv.textContent = `${targetName} Kills: ${kills}`;
         individualKillsContainer.appendChild(killDiv);
       }
-    }
-
-    // Render kill details table
-    function renderKillDetails() {
-      const tbody = document.getElementById('kill-details');
-      tbody.innerHTML = '';
-      
-      for (const [key, count] of Object.entries(gameState.stats.killDetails)) {
-        const [killer, victim] = key.split('-');
-        const row = `<tr><td>${killer}</td><td>${victim}</td><td>${count}</td></tr>`;
-        tbody.innerHTML += row;
-      }
-    }
-
-    // Reset all stats
-    function resetStats() {
-      if (confirm("Are you sure you want to reset all stats? This cannot be undone.")) {
-        gameState.stats = {
-          totalKills: 0,
-          killDetails: {}
-        };
-        
-        updateStatsUI();
-        renderKillDetails();
-        saveStats();
-      }
-    }
-
-    // Export stats as JSON
-    function exportStats() {
-      const data = JSON.stringify(gameState.stats, null, 2);
-      const blob = new Blob([data], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "bd_clan_stats.json";
-      a.click();
-      URL.revokeObjectURL(url);
     }
 
     // Initialize the game when DOM is loaded
