@@ -384,11 +384,13 @@
 
     <!-- Admin Note (hidden by default) -->
     <div class="admin-note" id="admin-note">
-        <h3>Admin Passkey</h3>
-        <p>The admin passkey is: <strong>ZenIsTrashBDFR</strong></p>
-        <p>Keep this secret!</p>
-        <button onclick="hideAdminNote()">Close</button>
-    </div>
+    <h3>Admin Passkey</h3>
+    <p>Please enter the current admin key</p>
+    <input type="password" id="current-admin-key" class="w-full p-2 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:border-red-500 mb-2">
+    <button onclick="checkCurrentAdminKey()" class="demon-btn py-2 px-4 rounded">Verify</button>
+    <div id="admin-key-error" class="text-red-500 text-sm mt-2 hidden"></div>
+    <button onclick="hideAdminNote()" class="mt-4 bg-gray-700 hover:bg-gray-600 py-2 px-4 rounded">Close</button>
+</div>
 
     <!-- Admin Access Form -->
     <div id="admin-access-container" class="hidden fixed inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center z-50">
@@ -538,9 +540,18 @@
         const database = firebase.database();
 
         // Database functions
-        function initializeData() {
+async function initializeData() {
+    try {
+        // Initialize adminKey if it doesn't exist
+        const adminKeySnapshot = await database.ref('adminKey').once('value');
+        if (!adminKeySnapshot.exists()) {
+            await database.ref('adminKey').set("ZenIsTrashBD");
+        }
+
+        // Initialize clanData if it doesn't exist
+        const clanDataSnapshot = await database.ref('clanData').once('value');
+        if (!clanDataSnapshot.exists()) {
             const defaultData = {
-                adminKey: "ZenIsTrashBDFR",
                 members: [
                     { username: "Keen", level: 13000 },
                     { username: "Kyle", level: 8100 },
@@ -552,18 +563,24 @@
                     { username: "BD_Ravynthal", level: 1713 },
                     { username: "Yosh", level: 600 },
                     { username: "DUCK", level: 490 }
-                ]
+      ]
             };
-
-            // Check if data exists, if not, set default data
-            database.ref('clanData').once('value').then(snapshot => {
-                if (!snapshot.exists()) {
-                    database.ref('clanData').set(defaultData)
-                        .then(() => console.log("✅ Default data initialized!"))
-                        .catch(error => console.error("❌ Error initializing data:", error));
-                }
-            });
+            await database.ref('clanData').set(defaultData);
         }
+    } catch (error) {
+        console.error("Initialization error:", error);
+        throw error;
+    }
+}
+        async function cleanDatabaseStructure() {
+    try {
+        // Remove the duplicate adminKey from clanData
+        await database.ref('clanData/adminKey').remove();
+        console.log("Database structure cleaned up successfully");
+    } catch (error) {
+        console.error("Error cleaning database structure:", error);
+    }
+}
 
         function getData(callback) {
             database.ref('clanData').on('value', snapshot => {
@@ -644,52 +661,55 @@
             document.getElementById('admin-key-error').classList.add('hidden');
         }
 
-        function verifyAdminKey() {
-            const key = document.getElementById('admin-key').value;
-            
-            if (!key) {
-                document.getElementById('admin-key-error').textContent = "Please enter an admin key";
-                document.getElementById('admin-key-error').classList.remove('hidden');
-                return;
-            }
-            
-            getAdminKey(adminKey => {
-                if (!adminKey) {
-                    console.error("No admin key found in database");
-                    return;
-                }
-                
-                if (key === adminKey) {
-                    isAdmin = true;
-                    hideAdminAccess();
-                    showMembersDashboard();
-                    adminControls.classList.remove('hidden');
-                    addMemberBtn.classList.remove('hidden');
-                } else {
-                    document.getElementById('admin-key-error').textContent = "Invalid admin key";
-                    document.getElementById('admin-key-error').classList.remove('hidden');
-                    document.getElementById('admin-key').classList.add('shake');
-                    setTimeout(() => document.getElementById('admin-key').classList.remove('shake'), 500);
-                }
-            });
-        }
 
-        function verifyDashboardAdminKey() {
-            const key = document.getElementById('admin-key-input').value;
-            
-            getAdminKey(adminKey => {
-                if (key === adminKey) {
-                    isAdmin = true;
-                    document.getElementById('admin-key-input').value = '';
-                    adminControls.classList.add('hidden');
-                    addMemberBtn.classList.remove('hidden');
-                    updateAdminUI();
-                } else {
-                    document.getElementById('admin-key-input').classList.add('shake');
-                    setTimeout(() => document.getElementById('admin-key-input').classList.remove('shake'), 500);
-                }
-            });
+async function verifyAdminKey() {
+    const key = document.getElementById('admin-key').value.trim();
+    const errorElement = document.getElementById('admin-key-error');
+    
+    try {
+        const snapshot = await database.ref('adminKey').once('value');
+        if (!snapshot.exists()) {
+            errorElement.textContent = "Admin system not configured";
+            errorElement.classList.remove('hidden');
+            return;
         }
+        
+        if (snapshot.val() === key) {
+            isAdmin = true;
+            hideAdminAccess();
+            showMembersDashboard();
+            adminControls.classList.add('hidden');
+            addMemberBtn.classList.remove('hidden');
+        } else {
+            errorElement.textContent = "Invalid admin key";
+            errorElement.classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error("Error verifying admin key:", error);
+        errorElement.textContent = "Error verifying key. Please try again.";
+        errorElement.classList.remove('hidden');
+    }
+}
+async function verifyDashboardAdminKey() {
+    const key = document.getElementById('admin-key-input').value.trim();
+    
+    try {
+        const snapshot = await database.ref('adminKey').once('value');
+        if (snapshot.exists() && snapshot.val() === key) {
+            isAdmin = true;
+            document.getElementById('admin-key-input').value = '';
+            adminControls.classList.add('hidden');
+            addMemberBtn.classList.remove('hidden');
+            updateAdminUI();
+        } else {
+            document.getElementById('admin-key-input').classList.add('shake');
+            setTimeout(() => document.getElementById('admin-key-input').classList.remove('shake'), 500);
+        }
+    } catch (error) {
+        console.error("Error verifying admin key:", error);
+        alert("Error verifying admin key. Please try again.");
+    }
+}
 
         function showMainMenu() {
             mainMenu.classList.remove('hidden');
@@ -916,6 +936,31 @@
             adminControls.classList.add('hidden');
             addMemberBtn.classList.add('hidden');
         }
+        async function checkCurrentAdminKey() {
+        const inputKey = document.getElementById('current-admin-key').value.trim();
+        const errorElement = document.getElementById('admin-key-error');
+        
+        if (!inputKey) {
+            errorElement.textContent = "Please enter an admin key";
+            errorElement.classList.remove('hidden');
+            return;
+        }
+        
+        try {
+            const snapshot = await database.ref('adminKey').once('value');
+            if (snapshot.exists() && snapshot.val() === inputKey) {
+                errorElement.classList.add('hidden');
+                hideAdminNote();
+            } else {
+                errorElement.textContent = "Invalid admin key";
+                errorElement.classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error("Error checking admin key:", error);
+            errorElement.textContent = "Error verifying key. Please try again.";
+            errorElement.classList.remove('hidden');
+        }
+    }
 
         function toggleMobileMenu() {
             mobileMenu.classList.toggle('open');
@@ -934,11 +979,13 @@
         }
 
         // Initialize when DOM is loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeData();
-            setupEventListeners();
-            testFirebaseConnection();
-        });
+        document.addEventListener('DOMContentLoaded', async function() {
+    await initializeData();
+    await cleanDatabaseStructure();  // Add this line
+    setupEventListeners();
+    renderMembersGrid();
+});
+
     </script>
 </body>
 </html>
