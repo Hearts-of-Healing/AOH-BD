@@ -7,51 +7,107 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
    <style>
-    body.demon-theme {
-      background-color: #1a1a1a;
-      color: white;
-      font-family: 'Segoe UI', sans-serif;
-    }
-    .target-box {
-      border: 2px solid white;
-      padding: 16px;
-      margin-bottom: 12px;
-      border-radius: 8px;
-    }
-    .health-bar {
-      background-color: red;
-      height: 16px;
-      width: 100%;
-      border-radius: 4px;
-    }
-    .health-fill {
-      background-color: limegreen;
-      height: 100%;
-      width: 100%;
-      transition: width 0.3s;
-      border-radius: 4px;
-    }
-    .hit-animation {
-      animation: shake 0.3s;
-    }
-    @keyframes shake {
-      0% { transform: translateX(0); }
-      25% { transform: translateX(-5px); }
-      50% { transform: translateX(5px); }
-      75% { transform: translateX(-5px); }
-      100% { transform: translateX(0); }
-    }
-    nav {
-      background-color: #111;
-      padding: 10px 20px;
-      color: white;
-      margin-bottom: 20px;
-    }
-    nav h1 {
-      font-size: 1.5rem;
-      font-weight: bold;
-    }
-  </style>
+        /* Animation classes */
+        @keyframes hit {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes death {
+            0% { opacity: 1; transform: scale(1) rotate(0deg); }
+            100% { opacity: 0; transform: scale(0) rotate(360deg); }
+        }
+        
+        @keyframes respawn {
+            0% { opacity: 0; transform: scale(0) rotate(-360deg); }
+            100% { opacity: 1; transform: scale(1) rotate(0deg); }
+        }
+        
+        .hit-animation {
+            animation: hit 0.3s ease;
+        }
+        
+        .death-animation {
+            animation: death 0.5s ease forwards;
+        }
+        
+        .respawn-animation {
+            animation: respawn 0.5s ease forwards;
+        }
+        
+        /* Custom styles */
+        .demon-theme {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+        
+        .demon-text {
+            color: #ff4d4d;
+        }
+        
+        .demon-card {
+            background-color: #16213e;
+            border-left: 4px solid #ff4d4d;
+        }
+        
+        .demon-btn {
+            background-color: #ff4d4d;
+            color: white;
+        }
+        
+        .demon-btn:hover {
+            background-color: #ff1a1a;
+        }
+        
+        .target {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .target:hover {
+            transform: scale(1.05);
+        }
+        
+        .progress-bar {
+            height: 20px;
+            background-color: #1a1a2e;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff4d4d, #ff1a1a);
+            transition: width 0.3s ease;
+        }
+        
+        .kill-count {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ff4d4d;
+            text-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
+        }
+        
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .stats-table th, .stats-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #2d3748;
+        }
+        
+        .stats-table th {
+            background-color: #1a1a2e;
+            color: #ff4d4d;
+        }
+        
+        .stats-table tr:hover {
+            background-color: #2d3748;
+        }
+    </style>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 </head>
