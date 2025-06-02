@@ -253,12 +253,29 @@
         };
 
         // Initialize the game
-        function initGame() {
-            // Load saved stats from localStorage
-            const savedStats = localStorage.getItem('bdClanClickerStats');
-            if (savedStats) {
-                Object.assign(gameState.stats, JSON.parse(savedStats));
-            }
+       function initGame() {
+    loadStats(stats => {
+        if (stats) {
+            Object.assign(gameState.stats, stats);
+        }
+        updateStatsUI();
+        renderKillDetails();
+    });
+            // Firebase configuration (same as your main site)
+const firebaseConfig = {
+    apiKey: "AIzaSyBDgadn_l0VLJmgCPzziGbwbXYaIfhn0vQ",
+    authDomain: "aoh-bd-clan.firebaseapp.com",
+    databaseURL: "https://aoh-bd-clan-default-rtdb.firebaseio.com/",
+    projectId: "aoh-bd-clan",
+    storageBucket: "aoh-bd-clan.firebasestorage.app",
+    messagingSenderId: "824398865971",
+    appId: "1:824398865971:web:139890878f47e251ad6546",
+    measurementId: "G-4V15NCH2RH"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
             
             // Set current killer from select
             const killerSelect = document.getElementById('killer-select');
@@ -393,8 +410,15 @@
 
         // Save stats to localStorage
         function saveStats() {
-            localStorage.setItem('bdClanClickerStats', JSON.stringify(gameState.stats));
+    database.ref('clickerStats').set(gameState.stats);
+}
+        function loadStats(callback) {
+    database.ref('clickerStats').once('value').then(snapshot => {
+        if (snapshot.exists()) {
+            callback(snapshot.val());
         }
+    });
+}
 
         // Reset all stats
         function resetStats() {
