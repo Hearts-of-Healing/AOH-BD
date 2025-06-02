@@ -202,235 +202,128 @@
     Export Members List
   </button>
     <script>
-        // Game state
-        const gameState = {
-            targets: {
-                Zen: { health: 100, maxHealth: 100 },
-                Kyle: { health: 100, maxHealth: 100 },
-                Levi: { health: 100, maxHealth: 100 },
-                Ban: { health: 100, maxHealth: 100 }
-            },
-            stats: {
-                totalKills: 0,
-                zenKills: 0,
-                kyleKills: 0,
-                leviKills: 0,
-                banKills: 0,
-                killDetails: {} // Format: { "killer-victim": count }
-            },
-            currentKiller: "Keen"
-        };
+  // Firebase config
+  const firebaseConfig = {
+    databaseURL: "https://aoh-bd-clan-default-rtdb.firebaseio.com/"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
 
-        // Initialize the game
-       function initGame() {
-    loadStats(stats => {
-        if (stats) {
-            Object.assign(gameState.stats, stats);
-        }
-        updateStatsUI();
-        renderKillDetails();
-    });
-            // Firebase configuration (same as your main site)
-const firebaseConfig = {
-    apiKey: "AIzaSyBDgadn_l0VLJmgCPzziGbwbXYaIfhn0vQ",
-    authDomain: "aoh-bd-clan.firebaseapp.com",
-    databaseURL: "https://aoh-bd-clan-default-rtdb.firebaseio.com/",
-    projectId: "aoh-bd-clan",
-    storageBucket: "aoh-bd-clan.firebasestorage.app",
-    messagingSenderId: "824398865971",
-    appId: "1:824398865971:web:139890878f47e251ad6546",
-    measurementId: "G-4V15NCH2RH"
-};
+  const levelFilter = document.getElementById("level-filter");
+  const sortMethod = document.getElementById("sort-method");
+  const killerSelect = document.getElementById("killer-select");
+  const killDetails = document.getElementById("kill-details");
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
-            
-            // Set current killer from select
-            const killerSelect = document.getElementById('killer-select');
-            killerSelect.value = gameState.currentKiller;
-            killerSelect.addEventListener('change', function() {
-                gameState.currentKiller = this.value;
-            });
-            
-            // Update UI
-            updateStatsUI();
-            renderKillDetails();
-        }
+  const healthBars = {
+    Zen: { bar: document.getElementById("zen-health"), count: 100, kills: 0, display: document.getElementById("zen-kills") },
+    Kyle: { bar: document.getElementById("kyle-health"), count: 100, kills: 0, display: document.getElementById("kyle-kills") },
+    Levi: { bar: document.getElementById("levi-health"), count: 100, kills: 0, display: document.getElementById("levi-kills") },
+    Ban: { bar: document.getElementById("ban-health"), count: 100, kills: 0, display: document.getElementById("ban-kills") }
+  };
+  let totalKills = 0;
+  const totalKillsDisplay = document.getElementById("total-kills");
+  const killLog = [];
 
-        // Attack a target
-        function attack(targetName) {
-            const target = gameState.targets[targetName];
-            if (!target) return;
-            
-            // Apply damage (random between 5-15)
-            const damage = Math.floor(Math.random() * 11) + 5;
-            target.health = Math.max(0, target.health - damage);
-            
-            // Update UI
-            updateTargetUI(targetName);
-            
-            // Add hit animation
-            const targetElement = document.getElementById(`${targetName.toLowerCase()}-target`);
-            targetElement.classList.add('hit-animation');
-            setTimeout(() => {
-                targetElement.classList.remove('hit-animation');
-            }, 300);
-            
-            // Check if target is dead
-            if (target.health <= 0) {
-                killTarget(targetName);
-            }
-        }
+  function updateHealthDisplay(name) {
+    const bar = healthBars[name].bar;
+    const health = healthBars[name].count;
+    bar.style.width = `${health}%`;
+    bar.style.background = `linear-gradient(90deg, #ff4d4d, #ff1a1a)`;
+    bar.style.height = "20px";
+  }
 
-        // Update target UI
-        function updateTargetUI(targetName) {
-            const target = gameState.targets[targetName];
-            const healthPercent = (target.health / target.maxHealth) * 100;
-            
-            document.getElementById(`${targetName.toLowerCase()}-health`).style.width = `${healthPercent}%`;
-            document.getElementById(`${targetName.toLowerCase()}-health-text`).textContent = target.health;
-        }
+  function attack(name) {
+    if (!healthBars[name]) return;
+    healthBars[name].count -= 10;
+    if (healthBars[name].count <= 0) {
+      healthBars[name].kills++;
+      totalKills++;
+      const killer = killerSelect.value || "Unknown";
+      killLog.push({ killer, victim: name });
 
-        // Kill a target
-        function killTarget(targetName) {
-            // Add death animation
-            const targetElement = document.getElementById(`${targetName.toLowerCase()}-target`);
-            targetElement.classList.add('death-animation');
-            
-            // Update stats
-            gameState.stats.totalKills++;
-            gameState.stats[`${targetName.toLowerCase()}Kills`]++;
-            
-            const killerVictimKey = `${gameState.currentKiller}-${targetName}`;
-            if (!gameState.stats.killDetails[killerVictimKey]) {
-                gameState.stats.killDetails[killerVictimKey] = 0;
-            }
-            gameState.stats.killDetails[killerVictimKey]++;
-            
-            // Save stats
-            saveStats();
-            
-            // Update UI
-            updateStatsUI();
-            renderKillDetails();
-            
-            // Respawn after delay
-            setTimeout(() => {
-                respawnTarget(targetName);
-            }, 1000);
-        }
-
-        // Respawn a target
-        function respawnTarget(targetName) {
-            const target = gameState.targets[targetName];
-            target.health = target.maxHealth;
-            
-            const targetElement = document.getElementById(`${targetName.toLowerCase()}-target`);
-            targetElement.classList.remove('death-animation');
-            targetElement.classList.add('respawn-animation');
-            
-            setTimeout(() => {
-                targetElement.classList.remove('respawn-animation');
-                updateTargetUI(targetName);
-            }, 500);
-        }
-
-        function toggleMobileMenu() {
-    const menu = document.querySelector('.mobile-menu');
-    if (menu.style.display === 'block') {
-        menu.style.display = 'none';
-    } else {
-        menu.style.display = 'block';
+      updateKillStats();
+      updateKillDetailsTable();
+      healthBars[name].count = 100; // reset health
     }
-}
+    updateHealthDisplay(name);
+  }
 
-        // Update stats UI
-        function updateStatsUI() {
-            document.getElementById('total-kills').textContent = gameState.stats.totalKills;
-            document.getElementById('zen-kills').textContent = gameState.stats.zenKills;
-            document.getElementById('kyle-kills').textContent = gameState.stats.kyleKills;
-            document.getElementById('levi-kills').textContent = gameState.stats.leviKills;
-            document.getElementById('ban-kills').textContent = gameState.stats.banKills;
-        }
-
-        // Render kill details table
-        function renderKillDetails() {
-            const tableBody = document.getElementById('kill-details');
-            tableBody.innerHTML = '';
-            
-            // Sort kill details by count (descending)
-            const sortedKills = Object.entries(gameState.stats.killDetails)
-                .sort((a, b) => b[1] - a[1]);
-            
-            sortedKills.forEach(([killerVictim, count]) => {
-                const [killer, victim] = killerVictim.split('-');
-                const row = document.createElement('tr');
-                
-                row.innerHTML = `
-                    <td>${killer}</td>
-                    <td>${victim}</td>
-                    <td>${count}</td>
-                `;
-                
-                tableBody.appendChild(row);
-            });
-            
-            // Add message if no kills yet
-            if (sortedKills.length === 0) {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td colspan="3" class="text-center py-4 text-gray-400">No kills recorded yet</td>
-                `;
-                tableBody.appendChild(row);
-            }
-        }
-
-        // Save stats to localStorage
-        function saveStats() {
-    database.ref('clickerStats').set(gameState.stats);
-}
-        function loadStats(callback) {
-    database.ref('clickerStats').once('value').then(snapshot => {
-        if (snapshot.exists()) {
-            callback(snapshot.val());
-        }
+  function updateKillStats() {
+    totalKillsDisplay.textContent = totalKills;
+    Object.entries(healthBars).forEach(([name, data]) => {
+      data.display.textContent = data.kills;
     });
-}
+  }
 
-        // Reset all stats
-        function resetStats() {
-            if (confirm('Are you sure you want to reset all statistics? This cannot be undone.')) {
-                gameState.stats = {
-                    totalKills: 0,
-                    zenKills: 0,
-                    kyleKills: 0,
-                    leviKills: 0,
-                    banKills: 0,
-                    killDetails: {}
-                };
-                
-                saveStats();
-                updateStatsUI();
-                renderKillDetails();
-            }
-        }
+  function updateKillDetailsTable() {
+    killDetails.innerHTML = "";
+    killLog.forEach(log => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td class="border px-4 py-2">${log.killer}</td>
+        <td class="border px-4 py-2">${log.victim}</td>
+        <td class="border px-4 py-2">1</td>
+      `;
+      killDetails.appendChild(row);
+    });
+  }
 
-        // Export stats as JSON
-        function exportStats() {
-            const dataStr = JSON.stringify(gameState.stats, null, 2);
-            const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-            
-            const exportName = 'bd-clan-kill-stats.json';
-            
-            const linkElement = document.createElement('a');
-            linkElement.setAttribute('href', dataUri);
-            linkElement.setAttribute('download', exportName);
-            linkElement.click();
-        }
+  function populateFiltersAndDropdowns(members) {
+    // Filter ranges
+    const levelRanges = Array.from({ length: 20 }, (_, i) => [i * 1000, (i + 1) * 1000]);
+    levelFilter.innerHTML = `<option value="all">All Levels</option>`;
+    levelRanges.forEach(([min, max]) => {
+      levelFilter.innerHTML += `<option value="${min}-${max}">${min}-${max}</option>`;
+    });
 
-        // Initialize the game when DOM is loaded
-        document.addEventListener('DOMContentLoaded', initGame);
-    </script>
+    killerSelect.innerHTML = `<option value="" disabled selected>Select Killer</option>`;
+    members.forEach(member => {
+      killerSelect.innerHTML += `<option value="${member.username}">${member.username}</option>`;
+    });
+  }
+
+  function renderMemberList(filtered) {
+    // For debugging: console.log(filtered);
+    // You could also render this to an HTML element if needed
+  }
+
+  function applyFiltersAndSort(members) {
+    const filterValue = levelFilter.value;
+    const sortValue = sortMethod.value;
+
+    let filtered = [...members];
+
+    if (filterValue !== "all") {
+      const [min, max] = filterValue.split("-").map(Number);
+      filtered = filtered.filter(m => m.level >= min && m.level < max);
+    }
+
+    if (sortValue === "level-asc") {
+      filtered.sort((a, b) => a.level - b.level);
+    } else if (sortValue === "level-desc") {
+      filtered.sort((a, b) => b.level - a.level);
+    } else if (sortValue === "name-asc") {
+      filtered.sort((a, b) => a.username.localeCompare(b.username));
+    }
+
+    renderMemberList(filtered);
+  }
+
+  function fetchMembers() {
+    db.ref("clanData/members").once("value", snapshot => {
+      const members = snapshot.val() || [];
+      populateFiltersAndDropdowns(members);
+      applyFiltersAndSort(members);
+    });
+  }
+
+  levelFilter.addEventListener("change", fetchMembers);
+  sortMethod.addEventListener("change", fetchMembers);
+
+  // Init
+  Object.keys(healthBars).forEach(updateHealthDisplay);
+  fetchMembers();
+</script>
+
 </body>
 </html>
