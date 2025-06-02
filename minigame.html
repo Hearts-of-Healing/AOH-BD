@@ -293,6 +293,41 @@
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
+    // TEMPORARY DEBUG: Force-create missing nodes
+(async function initDatabase() {
+  try {
+    // Initialize minigameTargets (with default targets if empty)
+    await database.ref('minigameTargets').once('value').then(async (snapshot) => {
+      if (!snapshot.exists()) {
+        const defaultTargets = {
+          Zen: { health: 100, maxHealth: 100 },
+          Kyle: { health: 100, maxHealth: 100 },
+          Levi: { health: 100, maxHealth: 100 },
+          Ban: { health: 100, maxHealth: 100 }
+        };
+        await database.ref('minigameTargets').set(defaultTargets);
+        console.log("Created minigameTargets with defaults");
+      }
+    });
+
+    // Initialize minigameKillers (empty if no clan members exist)
+    await database.ref('minigameKillers').set({});
+    console.log("Initialized minigameKillers");
+
+    // Initialize minigameStats (empty)
+    await database.ref('minigameStats').set({
+      totalKills: 0,
+      killDetails: {},
+      killCounts: {}
+    });
+    console.log("Initialized minigameStats");
+
+    alert("Database nodes created successfully! Refresh the page.");
+  } catch (error) {
+    console.error("Init error:", error);
+    alert("Error creating database nodes. Check console.");
+  }
+})();
 
     // Game state
     const gameState = {
