@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BD Clan Admin Panel</title>
+  <script type="module" src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, doc, updateDoc, addDoc, increment, serverTimestamp, Timestamp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const ADMIN_KEY = "ZenIsTrashBDFR";
+
+    async function loadPlayers() {
+      const snap = await getDocs(collection(db, "players"));
+      const select = document.getElementById("player-select");
+      select.innerHTML = "";
+      snap.forEach((docSnap) => {
+        const opt = document.createElement("option");
+        opt.value = docSnap.id;
+        opt.textContent = docSnap.data().name || docSnap.id;
+        select.appendChild(opt);
+      });
+    }
+
+    async function banPlayer() {
+      const id = document.getElementById("player-select").value;
+      await updateDoc(doc(db, "players", id), { isBanned: true });
+      alert("Player banned.");
+    }
+
+    async function timeoutPlayer() {
+      const id = document.getElementById("player-select").value;
+      const oneHourLater = Timestamp.fromDate(new Date(Date.now() + 3600000));
+      await updateDoc(doc(db, "players", id), { bannedUntil: oneHourLater });
+      alert("Player timed out.");
+    }
+
+    async function sendAnnouncement() {
+      const msg = document.getElementById("announcement-input").value;
+      if (!msg.trim()) return alert("Enter a message.");
+      await addDoc(collection(db, "announcements"), {
+        message: msg,
+        timestamp: serverTimestamp()
+      });
+      alert("Announcement sent.");
+    }
+
+    async function giftAll() {
+      const players = await getDocs(collection(db, "players"));
+      const updates = players.docs.map(d => updateDoc(doc(db, "players", d.id), { gold: increment(1000) }));
+      await Promise.all(updates);
+      alert("Gift of 1000 gold sent to all players.");
+    }
+
+    async function addKill() {
+      const id = document.getElementById("player-select").value;
+      await updateDoc(doc(db, "players", id), { kills: increment(1) });
+      alert("Kill added.");
+    }
+
+    window.onload = () => {
+      const inputKey = prompt("Enter admin key:");
+      if (inputKey !== ADMIN_KEY) {
+        document.body.innerHTML = "<h2>Access Denied</h2>";
+        return;
+      }
+      loadPlayers();
+      document.getElementById("ban-btn").onclick = banPlayer;
+      document.getElementById("timeout-btn").onclick = timeoutPlayer;
+      document.getElementById("announce-btn").onclick = sendAnnouncement;
+      document.getElementById("gift-btn").onclick = giftAll;
+      document.getElementById("kill-btn").onclick = addKill;
+    };
+  </script>
+</head>
+<body style="font-family: sans-serif; padding: 20px;">
+  <h1>🛠 BD Clan Admin Panel</h1>
+
+  <label for="player-select">👥 Select Player:</label>
+  <select id="player-select" style="margin: 10px 0;"></select><br />
+
+  <button id="ban-btn">🚫 Ban</button>
+  <button id="timeout-btn">⏳ Timeout 1hr</button>
+  <button id="kill-btn">💀 Add Kill</button>
+
+  <hr />
+
+  <h2>📣 Send Announcement</h2>
+  <input id="announcement-input" placeholder="Message..." style="width: 60%;" />
+  <button id="announce-btn">Send</button>
+
+  <hr />
+
+  <h2>🎁 Global Gift</h2>
+  <button id="gift-btn">Send 1000 Gold to All</button>
+</body>
+</html>
