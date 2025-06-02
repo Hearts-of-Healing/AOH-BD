@@ -49,6 +49,12 @@
       width: 100%;
       margin: 10px 0;
     }
+    .coin-controls {
+      background-color: #16213e;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 15px 0;
+    }
   </style>
 </head>
 <body>
@@ -61,6 +67,13 @@
 
   <div id="admin-panel" style="display: none;">
     <h1>🛠 BD Clan Admin Panel</h1>
+
+    <div class="coin-controls">
+      <h2>💰 Coin Management</h2>
+      <input type="number" id="coin-amount" placeholder="Amount" class="login-input">
+      <button id="add-coins-btn">Add Coins to All</button>
+      <button id="reset-coins-btn">Reset All Coins</button>
+    </div>
 
     <label for="player-select">👥 Select Player:</label>
     <select id="player-select" style="margin: 10px 0;"></select><br />
@@ -152,79 +165,39 @@
       });
     }
 
-    // Admin actions
-    async function banPlayer() {
-      const id = document.getElementById("player-select").value;
-      try {
-        await database.ref(`players/${id}/isBanned`).set(true);
-        alert("Player banned successfully");
-      } catch (error) {
-        console.error("Error banning player:", error);
-        alert("Failed to ban player");
-      }
-    }
-
-    async function timeoutPlayer() {
-      const id = document.getElementById("player-select").value;
-      const oneHourLater = new Date(Date.now() + 3600000).toISOString();
-      try {
-        await database.ref(`players/${id}/bannedUntil`).set(oneHourLater);
-        alert("Player timed out for 1 hour");
-      } catch (error) {
-        console.error("Error timing out player:", error);
-        alert("Failed to timeout player");
-      }
-    }
-
-    async function sendAnnouncement() {
-      const msg = document.getElementById("announcement-input").value.trim();
-      if (!msg) {
-        alert("Please enter a message");
+    // Coin management functions
+    async function addCoinsToAll() {
+      const amount = parseInt(document.getElementById('coin-amount').value);
+      if (isNaN(amount) || amount <= 0) {
+        alert("Please enter a valid positive number");
         return;
       }
       
       try {
-        await database.ref("announcements").push({
-          message: msg,
-          timestamp: firebase.database.ServerValue.TIMESTAMP
-        });
-        alert("Announcement sent successfully");
-        document.getElementById("announcement-input").value = "";
-      } catch (error) {
-        console.error("Error sending announcement:", error);
-        alert("Failed to send announcement");
-      }
-    }
-
-    async function giftAll() {
-      if (!confirm("Send 1000 gold to all players?")) return;
-      
-      try {
-        const snapshot = await database.ref("players").once("value");
+        const snapshot = await database.ref('minigameStats').once('value');
         if (snapshot.exists()) {
-          const updates = {};
-          snapshot.forEach(child => {
-            updates[`${child.key}/gold`] = firebase.database.ServerValue.increment(1000);
-          });
-          await database.ref("players").update(updates);
-          alert("Gift sent to all players");
+          const stats = snapshot.val();
+          stats.coins = (stats.coins || 0) + amount;
+          await database.ref('minigameStats').update({ coins: stats.coins });
+          alert(`Added ${amount} coins to all players`);
         } else {
-          alert("No players found");
+          alert("No minigame stats found");
         }
       } catch (error) {
-        console.error("Error sending gift:", error);
-        alert("Failed to send gift");
+        console.error("Error adding coins:", error);
+        alert("Failed to add coins");
       }
     }
 
-    async function addKill() {
-      const id = document.getElementById("player-select").value;
+    async function resetAllCoins() {
+      if (!confirm("Reset all coins to zero?")) return;
+      
       try {
-        await database.ref(`players/${id}/kills`).set(firebase.database.ServerValue.increment(1));
-        alert("Kill added successfully");
+        await database.ref('minigameStats/coins').set(0);
+        alert("All coins reset to zero");
       } catch (error) {
-        console.error("Error adding kill:", error);
-        alert("Failed to add kill");
+        console.error("Error resetting coins:", error);
+        alert("Failed to reset coins");
       }
     }
 
@@ -233,11 +206,14 @@
       try {
         await loadPlayers();
         
+        // Set up event listeners
         document.getElementById("ban-btn").onclick = banPlayer;
         document.getElementById("timeout-btn").onclick = timeoutPlayer;
         document.getElementById("announce-btn").onclick = sendAnnouncement;
         document.getElementById("gift-btn").onclick = giftAll;
         document.getElementById("kill-btn").onclick = addKill;
+        document.getElementById("add-coins-btn").onclick = addCoinsToAll;
+        document.getElementById("reset-coins-btn").onclick = resetAllCoins;
         
         loginContainer.style.display = "none";
         adminPanel.style.display = "block";
