@@ -24,14 +24,6 @@
       background-color: #10b981;
       transition: width 0.3s ease;
     }
-    .btn {
-      @apply bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded;
-    }
-    .error-message {
-      color: #ef4444;
-      font-size: 0.875rem;
-      margin-top: 0.25rem;
-    }
     .coin {
       color: gold;
       text-shadow: 0 0 5px rgba(255, 215, 0, 0.7);
@@ -62,89 +54,58 @@
     .nav-link:hover::after {
       width: 100%;
     }
-    .mobile-menu {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.3s ease-out;
-    }
-    .mobile-menu.open {
-      max-height: 500px;
-      transition: max-height 0.3s ease-in;
-    }
-    .hidden {
-      display: none;
-    }
-    .shake {
-      animation: shake 0.5s;
-    }
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      20%, 60% { transform: translateX(-5px); }
-      40%, 80% { transform: translateX(5px); }
-    }
   </style>
 </head>
 <body class="text-white min-h-screen overflow-x-hidden">
-  <!-- Navigation Menu -->
+
+ <!-- Navbar -->
   <nav class="navbar fixed top-0 w-full z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-16">
-        <!-- Logo -->
-        <div class="flex-shrink-0">
-          <span class="text-xl font-bold text-red-500">AOH - BD Clan</span>
+        <div class="text-xl font-bold text-red-500">AOH - BD Clan</div>
+        <div class="hidden md:block space-x-4">
+          <a href="index.html" class="nav-link text-white"><i class="fas fa-home mr-1"></i> Home</a>
+          <a href="admin.html" class="nav-link text-white"><i class="fas fa-lock mr-1"></i> Admin</a>
+          <a href="#" class="nav-link text-white"><i class="fas fa-gamepad mr-1"></i> Minigame</a>
         </div>
-
-        <!-- Desktop Menu -->
-        <div class="hidden md:block">
-          <div class="ml-10 flex items-center space-x-4">
-            <a href="index.html" class="nav-link text-white">
-              <i class="fas fa-home mr-1"></i> Home
-            </a>
-            <a href="#" class="nav-link text-white" onclick="showMembersDashboard()">
-              <i class="fas fa-users mr-1"></i> Members
-            </a>
-            <a href="admin.html" class="nav-link text-white">
-              <i class="fas fa-lock mr-1"></i> Admin
-            </a>
-            <a href="minigame.html" class="nav-link text-white">
-              <i class="fas fa-gamepad mr-1"></i> Minigame
-            </a>
-            <button onclick="toggleAdminLogin()" class="nav-link text-white">
-              <i class="fas fa-user-shield mr-1"></i> Minigame Admin
-            </button>
-          </div>
-        </div>
-
-        <!-- Mobile menu button -->
-        <div class="md:hidden">
-          <button onclick="toggleMobileMenu()" class="text-white hover:text-red-400 focus:outline-none">
-            <i class="fas fa-bars text-xl"></i>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Mobile Menu -->
-    <div class="mobile-menu md:hidden bg-gray-900">
-      <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-        <a href="index.html" class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-gray-800">
-          <i class="fas fa-home mr-2"></i> Home
-        </a>
-        <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-gray-800" onclick="showMembersDashboard(); toggleMobileMenu()">
-          <i class="fas fa-users mr-2"></i> Members
-        </a>
-        <a href="admin.html" class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-gray-800">
-          <i class="fas fa-lock mr-2"></i> Admin
-        </a>
-        <a href="minigame.html" class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-gray-800">
-          <i class="fas fa-gamepad mr-2"></i> Minigame
-        </a>
-        <button onclick="toggleAdminLogin(); toggleMobileMenu()" class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-gray-800 w-full text-left">
-          <i class="fas fa-user-shield mr-2"></i> Minigame Admin
-        </button>
       </div>
     </div>
   </nav>
+
+  <div class="mt-24 max-w-4xl mx-auto p-4">
+    <div class="bg-gray-900 p-6 rounded shadow space-y-4">
+      <div class="flex justify-between items-center">
+        <h2 class="text-2xl font-bold text-green-400">Kill Stats</h2>
+        <div class="text-xl">
+          <span class="coin">Coins: <span id="coin-count">0</span></span>
+        </div>
+      </div>
+      <div>Total Kills: <span id="total-kills">0</span></div>
+      <table class="w-full text-sm mt-4">
+        <thead>
+          <tr><th>Killer</th><th>Victim</th><th>Count</th></tr>
+        </thead>
+        <tbody id="kill-details"></tbody>
+      </table>
+      <div class="flex gap-2 mt-4">
+        <button onclick="resetStats()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Reset Stats</button>
+        <button onclick="exportStats()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Export Stats</button>
+      </div>
+      <div class="flex gap-2 mt-4">
+        <button onclick="grantDailyReward()" class="bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded">🎁 Daily Reward</button>
+        <button onclick="document.getElementById('story-page').classList.toggle('hidden')" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded">📖 Story Exchange</button>
+      </div>
+    </div>
+
+    <!-- Story Page -->
+    <div id="story-page" class="hidden mt-6 p-4 bg-gray-800 rounded text-center">
+      <h3 class="text-xl font-bold text-yellow-400 mb-2">📖 Story Exchange</h3>
+      <p>Exchange 1 coin for 10 levels</p>
+      <input type="number" id="story-coin-input" class="p-2 mt-2 bg-gray-700 rounded w-32 text-center" min="1" placeholder="Coins">
+      <button onclick="exchangeCoinsForLevels()" class="mt-2 bg-yellow-500 hover:bg-yellow-600 text-black py-2 px-4 rounded">Exchange</button>
+      <p id="story-result" class="mt-2 text-green-400"></p>
+    </div>
+  </div>
 
   <!-- Admin Login Modal -->
   <div id="admin-login-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
