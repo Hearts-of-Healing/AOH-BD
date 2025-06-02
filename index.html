@@ -252,11 +252,109 @@
             background: linear-gradient(135deg, #2c3e50 0%, #1a1a2e 100%);
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
         }
+
+        /* Navigation styles */
+        .navbar {
+            background-color: rgba(26, 26, 46, 0.9);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 77, 77, 0.2);
+        }
+
+        .nav-link {
+            position: relative;
+            padding: 0.5rem 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: #ff4d4d;
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background-color: #ff4d4d;
+            transition: width 0.3s ease;
+        }
+
+        .nav-link:hover::after {
+            width: 100%;
+        }
+
+        .mobile-menu {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .mobile-menu.open {
+            max-height: 500px;
+            transition: max-height 0.3s ease-in;
+        }
     </style>
 </head>
 <body class="demon-theme text-white min-h-screen overflow-x-hidden">
+    <!-- Navigation Menu -->
+    <nav class="navbar fixed top-0 w-full z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo -->
+                <div class="flex-shrink-0">
+                    <span class="text-xl font-bold demon-text">AOH - BD Clan</span>
+                </div>
+
+                <!-- Desktop Menu -->
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-center space-x-4">
+                        <a href="#" class="nav-link text-white" onclick="showMainMenu()">
+                            <i class="fas fa-home mr-1"></i> Home
+                        </a>
+                        <a href="#" class="nav-link text-white" onclick="showMembersDashboard()">
+                            <i class="fas fa-users mr-1"></i> Members
+                        </a>
+                        <a href="#" class="nav-link text-white" onclick="showAdminAccess()">
+                            <i class="fas fa-lock mr-1"></i> Admin
+                        </a>
+                        <a href="minigame.html" class="nav-link text-white" onclick="showAdminNote()">
+                            <i class="fas fa-info-circle mr-1"></i> MiniGame
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Mobile menu button -->
+                <div class="md:hidden">
+                    <button onclick="toggleMobileMenu()" class="text-white hover:text-red-400 focus:outline-none">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div class="mobile-menu md:hidden bg-gray-900">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-gray-800" onclick="showMainMenu(); toggleMobileMenu()">
+                    <i class="fas fa-home mr-2"></i> Home
+                </a>
+                <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-gray-800" onclick="showMembersDashboard(); toggleMobileMenu()">
+                    <i class="fas fa-users mr-2"></i> Members
+                </a>
+                <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-gray-800" onclick="showAdminAccess(); toggleMobileMenu()">
+                    <i class="fas fa-lock mr-2"></i> Admin
+                </a>
+                <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-gray-800" onclick="showAdminNote(); toggleMobileMenu()">
+                    <i class="fas fa-info-circle mr-2"></i> About
+                </a>
+            </div>
+        </div>
+    </nav>
+
     <!-- Main Menu -->
-    <div id="main-menu" class="flex flex-col items-center justify-center min-h-screen relative">
+    <div id="main-menu" class="flex flex-col items-center justify-center min-h-screen relative pt-16">
         <!-- Decorative elements -->
         <div class="absolute top-0 left-0 w-full h-full overflow-hidden">
             <div class="absolute top-20 left-10 w-20 h-20 rounded-full bg-red-500 opacity-10 blur-xl"></div>
@@ -314,7 +412,7 @@
     </div>
     
     <!-- Members Dashboard -->
-    <div id="members-dashboard" class="hidden min-h-screen p-6">
+    <div id="members-dashboard" class="hidden min-h-screen p-6 pt-24">
         <div class="max-w-7xl mx-auto">
             <div class="flex justify-between items-center mb-8">
                 <h2 class="text-3xl font-bold demon-text">Clan Members</h2>
@@ -525,6 +623,7 @@
         const playBtn = document.getElementById('play-btn');
         const adminBtn = document.getElementById('admin-btn');
         const adminNote = document.getElementById('admin-note');
+        const mobileMenu = document.querySelector('.mobile-menu');
 
         // UI Functions
         function showAdminNote() {
@@ -590,6 +689,12 @@
                     setTimeout(() => document.getElementById('admin-key-input').classList.remove('shake'), 500);
                 }
             });
+        }
+
+        function showMainMenu() {
+            mainMenu.classList.remove('hidden');
+            adminAccessContainer.classList.add('hidden');
+            membersDashboard.classList.add('hidden');
         }
 
         function showMembersDashboard() {
@@ -810,6 +915,10 @@
             mainMenu.classList.remove('hidden');
             adminControls.classList.add('hidden');
             addMemberBtn.classList.add('hidden');
+        }
+
+        function toggleMobileMenu() {
+            mobileMenu.classList.toggle('open');
         }
 
         // Event Listeners
