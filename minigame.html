@@ -123,7 +123,7 @@
                 <!-- Desktop Menu -->
                 <div class="hidden md:block">
                     <div class="ml-10 flex items-center space-x-4">
-                        <a href="#" class="nav-link text-white" onclick="showMainMenu()">
+                        <a href="index.html" class="nav-link text-white" onclick="showMainMenu()">
                             <i class="fas fa-home mr-1"></i> Home
                         </a>
                         <a href="#" class="nav-link text-white" onclick="showAdminAccess()">
@@ -147,7 +147,7 @@
         <!-- Mobile Menu -->
         <div class="mobile-menu md:hidden bg-gray-900" style="display: none;">
             <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-gray-800" onclick="showMainMenu(); toggleMobileMenu()">
+                <a href="index.html" class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-gray-800" onclick="showMainMenu(); toggleMobileMenu()">
                     <i class="fas fa-home mr-2"></i> Home
                 </a>
                 <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-gray-800" onclick="showAdminAccess(); toggleMobileMenu()">
@@ -281,12 +281,7 @@
             </div>
         </div>
     </div>
-
-   
-
-
-    <script>
-        // Game state
+       <script>
         const gameState = {
             targets: {
                 Zen: { health: 100, maxHealth: 100 },
@@ -300,136 +295,92 @@
                 kyleKills: 0,
                 leviKills: 0,
                 banKills: 0,
-                killDetails: {} // Format: { "killer-victim": count }
+                killDetails: {}
             },
             currentKiller: "Keen"
         };
 
-        // Initialize the game
-       function initGame() {
-    loadStats(stats => {
-        if (stats) {
-            Object.assign(gameState.stats, stats);
-        }
-        updateStatsUI();
-        renderKillDetails();
-    });
-            // Firebase configuration (same as your main site)
-const firebaseConfig = {
-    apiKey: "AIzaSyBDgadn_l0VLJmgCPzziGbwbXYaIfhn0vQ",
-    authDomain: "aoh-bd-clan.firebaseapp.com",
-    databaseURL: "https://aoh-bd-clan-default-rtdb.firebaseio.com/",
-    projectId: "aoh-bd-clan",
-    storageBucket: "aoh-bd-clan.firebasestorage.app",
-    messagingSenderId: "824398865971",
-    appId: "1:824398865971:web:139890878f47e251ad6546",
-    measurementId: "G-4V15NCH2RH"
-};
+        const firebaseConfig = {
+            apiKey: "AIzaSyBDgadn_l0VLJmgCPzziGbwbXYaIfhn0vQ",
+            authDomain: "aoh-bd-clan.firebaseapp.com",
+            databaseURL: "https://aoh-bd-clan-default-rtdb.firebaseio.com/",
+            projectId: "aoh-bd-clan",
+            storageBucket: "aoh-bd-clan.firebasestorage.app",
+            messagingSenderId: "824398865971",
+            appId: "1:824398865971:web:139890878f47e251ad6546",
+            measurementId: "G-4V15NCH2RH"
+        };
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
-            
-            // Set current killer from select
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        function initGame() {
+            loadStats(stats => {
+                if (stats) {
+                    Object.assign(gameState.stats, stats);
+                }
+                updateStatsUI();
+                renderKillDetails();
+            });
+
             const killerSelect = document.getElementById('killer-select');
             killerSelect.value = gameState.currentKiller;
             killerSelect.addEventListener('change', function() {
                 gameState.currentKiller = this.value;
             });
-            
-            // Update UI
-            updateStatsUI();
-            renderKillDetails();
         }
 
-        // Attack a target
         function attack(targetName) {
             const target = gameState.targets[targetName];
             if (!target) return;
-            
-            // Apply damage (random between 5-15)
+
             const damage = Math.floor(Math.random() * 11) + 5;
             target.health = Math.max(0, target.health - damage);
-            
-            // Update UI
             updateTargetUI(targetName);
-            
-            // Add hit animation
+
             const targetElement = document.getElementById(`${targetName.toLowerCase()}-target`);
             targetElement.classList.add('hit-animation');
             setTimeout(() => {
                 targetElement.classList.remove('hit-animation');
             }, 300);
-            
-            // Check if target is dead
+
             if (target.health <= 0) {
                 killTarget(targetName);
             }
         }
 
-        // Update target UI
         function updateTargetUI(targetName) {
             const target = gameState.targets[targetName];
             const healthPercent = (target.health / target.maxHealth) * 100;
-            
             document.getElementById(`${targetName.toLowerCase()}-health`).style.width = `${healthPercent}%`;
             document.getElementById(`${targetName.toLowerCase()}-health-text`).textContent = target.health;
         }
 
-        // Kill a target
         function killTarget(targetName) {
-            // Add death animation
             const targetElement = document.getElementById(`${targetName.toLowerCase()}-target`);
             targetElement.classList.add('death-animation');
-            
-            // Update stats
+
             gameState.stats.totalKills++;
             gameState.stats[`${targetName.toLowerCase()}Kills`]++;
-            
+
             const killerVictimKey = `${gameState.currentKiller}-${targetName}`;
-            if (!gameState.stats.killDetails[killerVictimKey]) {
-                gameState.stats.killDetails[killerVictimKey] = 0;
-            }
-            gameState.stats.killDetails[killerVictimKey]++;
-            
-            // Save stats
-            saveStats();
-            
-            // Update UI
+            gameState.stats.killDetails[killerVictimKey] = (gameState.stats.killDetails[killerVictimKey] || 0) + 1;
+
             updateStatsUI();
             renderKillDetails();
-            
-            // Respawn after delay
+            saveStats();
+
             setTimeout(() => {
-                respawnTarget(targetName);
+                target.health = target.maxHealth;
+                updateTargetUI(targetName);
+                targetElement.classList.remove('death-animation');
+                targetElement.classList.add('respawn-animation');
+                setTimeout(() => {
+                    targetElement.classList.remove('respawn-animation');
+                }, 500);
             }, 1000);
         }
 
-        // Respawn a target
-        function respawnTarget(targetName) {
-            const target = gameState.targets[targetName];
-            target.health = target.maxHealth;
-            
-            const targetElement = document.getElementById(`${targetName.toLowerCase()}-target`);
-            targetElement.classList.remove('death-animation');
-            targetElement.classList.add('respawn-animation');
-            
-            setTimeout(() => {
-                targetElement.classList.remove('respawn-animation');
-                updateTargetUI(targetName);
-            }, 500);
-        }
-
-        function toggleMobileMenu() {
-    const menu = document.querySelector('.mobile-menu');
-    if (menu.style.display === 'block') {
-        menu.style.display = 'none';
-    } else {
-        menu.style.display = 'block';
-    }
-}
-
-        // Update stats UI
         function updateStatsUI() {
             document.getElementById('total-kills').textContent = gameState.stats.totalKills;
             document.getElementById('zen-kills').textContent = gameState.stats.zenKills;
@@ -438,83 +389,55 @@ const database = firebase.database();
             document.getElementById('ban-kills').textContent = gameState.stats.banKills;
         }
 
-        // Render kill details table
         function renderKillDetails() {
-            const tableBody = document.getElementById('kill-details');
-            tableBody.innerHTML = '';
-            
-            // Sort kill details by count (descending)
-            const sortedKills = Object.entries(gameState.stats.killDetails)
-                .sort((a, b) => b[1] - a[1]);
-            
-            sortedKills.forEach(([killerVictim, count]) => {
-                const [killer, victim] = killerVictim.split('-');
-                const row = document.createElement('tr');
-                
-                row.innerHTML = `
-                    <td>${killer}</td>
-                    <td>${victim}</td>
-                    <td>${count}</td>
-                `;
-                
-                tableBody.appendChild(row);
-            });
-            
-            // Add message if no kills yet
-            if (sortedKills.length === 0) {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td colspan="3" class="text-center py-4 text-gray-400">No kills recorded yet</td>
-                `;
-                tableBody.appendChild(row);
+            const tbody = document.getElementById('kill-details');
+            tbody.innerHTML = '';
+            for (const key in gameState.stats.killDetails) {
+                const [killer, victim] = key.split('-');
+                const count = gameState.stats.killDetails[key];
+                const row = `<tr><td>${killer}</td><td>${victim}</td><td>${count}</td></tr>`;
+                tbody.innerHTML += row;
             }
         }
 
-        // Save stats to localStorage
         function saveStats() {
-    database.ref('clickerStats').set(gameState.stats);
-}
+            database.ref('minigameStats').set(gameState.stats);
+        }
+
         function loadStats(callback) {
-    database.ref('clickerStats').once('value').then(snapshot => {
-        if (snapshot.exists()) {
-            callback(snapshot.val());
+            database.ref('minigameStats').once('value').then(snapshot => {
+                callback(snapshot.val());
+            });
         }
-    });
-}
 
-        // Reset all stats
         function resetStats() {
-            if (confirm('Are you sure you want to reset all statistics? This cannot be undone.')) {
-                gameState.stats = {
-                    totalKills: 0,
-                    zenKills: 0,
-                    kyleKills: 0,
-                    leviKills: 0,
-                    banKills: 0,
-                    killDetails: {}
-                };
-                
-                saveStats();
-                updateStatsUI();
-                renderKillDetails();
-            }
+            if (!confirm('Are you sure you want to reset all stats?')) return;
+            gameState.stats = {
+                totalKills: 0,
+                zenKills: 0,
+                kyleKills: 0,
+                leviKills: 0,
+                banKills: 0,
+                killDetails: {}
+            };
+            updateStatsUI();
+            renderKillDetails();
+            saveStats();
         }
 
-        // Export stats as JSON
         function exportStats() {
             const dataStr = JSON.stringify(gameState.stats, null, 2);
-            const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-            
-            const exportName = 'bd-clan-kill-stats.json';
-            
-            const linkElement = document.createElement('a');
-            linkElement.setAttribute('href', dataUri);
-            linkElement.setAttribute('download', exportName);
-            linkElement.click();
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "minigame_stats.json";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         }
 
-        // Initialize the game when DOM is loaded
-        document.addEventListener('DOMContentLoaded', initGame);
+        window.onload = initGame;
     </script>
 </body>
 </html>
