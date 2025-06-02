@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BD Clan Clicker Minigame</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-   <style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BD Clan Clicker Minigame</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
         /* Animation classes */
         @keyframes hit {
             0% { transform: scale(1); }
@@ -108,222 +108,407 @@
             background-color: #2d3748;
         }
     </style>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
-<body class="demon-theme min-h-screen p-4">
-  <!-- Navigation Bar -->
-  <nav>
-    <h1>BD Clan Minigame</h1>
-  </nav>
+  <!-- Navigation Menu -->
+    <nav class="navbar fixed top-0 w-full z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo -->
+                <div class="flex-shrink-0">
+                    <span class="text-xl font-bold demon-text">AOH - BD Clan</span>
+                </div>
 
-  <!-- Filters and Killer Selector -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-    <div>
-      <label for="level-filter" class="block mb-1 font-semibold">Filter by Level:</label>
-      <select id="level-filter" class="text-black p-2 rounded w-full">
-        <option value="all">All Levels</option>
-      </select>
-    </div>
-    <div>
-      <label for="sort-method" class="block mb-1 font-semibold">Sort:</label>
-      <select id="sort-method" class="text-black p-2 rounded w-full">
-        <option value="default">Sort: Default</option>
-        <option value="level-asc">Sort: Level (Low → High)</option>
-        <option value="level-desc">Sort: Level (High → Low)</option>
-        <option value="name-asc">Sort: Name (A → Z)</option>
-      </select>
-    </div>
-    <div>
-      <label for="killer-select" class="block mb-1 font-semibold">Select Killer:</label>
-      <select id="killer-select" class="text-black p-2 rounded w-full">
-        <option value="" disabled selected>Loading...</option>
-      </select>
-    </div>
-  </div>
+                <!-- Desktop Menu -->
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-center space-x-4">
+                        <a href="#" class="nav-link text-white" onclick="showMainMenu()">
+                            <i class="fas fa-home mr-1"></i> Home
+                        </a>
+                        <a href="#" class="nav-link text-white" onclick="showAdminAccess()">
+                            <i class="fas fa-lock mr-1"></i> Admin
+                        </a>
+                        <a href="minigame.html" class="nav-link text-white" onclick="showAdminNote()">
+                            <i class="fas fa-info-circle mr-1"></i> MiniGame
+                        </a>
+                    </div>
+                </div>
 
-  <!-- Clicker Minigame Targets -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-    <div id="zen-target" class="target-box">
-      <h2 class="text-xl font-bold mb-2">Zen</h2>
-      <div class="health-bar mb-2">
-        <div id="zen-health" class="health-fill"></div>
-      </div>
-      <button onclick="attack('Zen')" class="bg-red-600 px-3 py-1 rounded hover:bg-red-700">Attack</button>
-    </div>
-    <div id="kyle-target" class="target-box">
-      <h2 class="text-xl font-bold mb-2">Kyle</h2>
-      <div class="health-bar mb-2">
-        <div id="kyle-health" class="health-fill"></div>
-      </div>
-      <button onclick="attack('Kyle')" class="bg-red-600 px-3 py-1 rounded hover:bg-red-700">Attack</button>
-    </div>
-    <div id="levi-target" class="target-box">
-      <h2 class="text-xl font-bold mb-2">Levi</h2>
-      <div class="health-bar mb-2">
-        <div id="levi-health" class="health-fill"></div>
-      </div>
-      <button onclick="attack('Levi')" class="bg-red-600 px-3 py-1 rounded hover:bg-red-700">Attack</button>
-    </div>
-    <div id="ban-target" class="target-box">
-      <h2 class="text-xl font-bold mb-2">Ban</h2>
-      <div class="health-bar mb-2">
-        <div id="ban-health" class="health-fill"></div>
-      </div>
-      <button onclick="attack('Ban')" class="bg-red-600 px-3 py-1 rounded hover:bg-red-700">Attack</button>
-    </div>
-  </div>
+                <!-- Mobile menu button -->
+                <div class="md:hidden">
+                    <button onclick="toggleMobileMenu()" class="text-white hover:text-red-400 focus:outline-none">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
 
-  <!-- Stats Section -->
-  <div class="mb-6">
-    <h2 class="text-lg font-bold mb-2">Stats</h2>
-    <p>Total Kills: <span id="total-kills">0</span></p>
-    <p>Zen Kills: <span id="zen-kills">0</span></p>
-    <p>Kyle Kills: <span id="kyle-kills">0</span></p>
-    <p>Levi Kills: <span id="levi-kills">0</span></p>
-    <p>Ban Kills: <span id="ban-kills">0</span></p>
-  </div>
+        <!-- Mobile Menu -->
+        <div class="mobile-menu md:hidden bg-gray-900" style="display: none;">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="index.html" class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-gray-800" onclick="showMainMenu(); toggleMobileMenu()">
+                    <i class="fas fa-home mr-2"></i> Home
+                </a>
+                <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-gray-800" onclick="showAdminAccess(); toggleMobileMenu()">
+                    <i class="fas fa-lock mr-2"></i> Admin
+                </a>
+                <a href="minigame.html" class="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-gray-800" onclick="showAdminNote(); toggleMobileMenu()">
+                    <i class="fas fa-info-circle mr-2"></i> MiniGame
+                </a>
+            </div>
+        </div>
+    </nav>
+<body class="demon-theme text-white min-h-screen p-4">
+  
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-4xl font-bold text-center mb-8 demon-text">BD Clan Clicker Minigame</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Targets Section -->
+            <div class="demon-card p-6 rounded-lg">
+                <h2 class="text-2xl font-bold mb-6 demon-text">Targets</h2>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Zen -->
+                    <div class="target text-center p-4 rounded-lg bg-gray-800" id="zen-target" onclick="attack('Zen')">
+                        <img src="https://via.placeholder.com/150/ff4d4d/ffffff?text=Zen" alt="Zen" class="w-24 h-24 mx-auto rounded-full mb-2">
+                        <h3 class="text-xl font-bold">Zen</h3>
+                        <div class="progress-bar mt-2">
+                            <div class="progress-fill" id="zen-health" style="width: 100%"></div>
+                        </div>
+                        <p class="text-sm mt-1">Health: <span id="zen-health-text">100</span>/100</p>
+                    </div>
+                    
+                    <!-- Kyle -->
+                    <div class="target text-center p-4 rounded-lg bg-gray-800" id="kyle-target" onclick="attack('Kyle')">
+                        <img src="https://via.placeholder.com/150/4d79ff/ffffff?text=Kyle" alt="Kyle" class="w-24 h-24 mx-auto rounded-full mb-2">
+                        <h3 class="text-xl font-bold">Kyle</h3>
+                        <div class="progress-bar mt-2">
+                            <div class="progress-fill" id="kyle-health" style="width: 100%"></div>
+                        </div>
+                        <p class="text-sm mt-1">Health: <span id="kyle-health-text">100</span>/100</p>
+                    </div>
+                    
+                    <!-- Levi/Dark -->
+                    <div class="target text-center p-4 rounded-lg bg-gray-800" id="levi-target" onclick="attack('Levi')">
+                        <img src="https://via.placeholder.com/150/aa00ff/ffffff?text=Levi" alt="Levi/Dark" class="w-24 h-24 mx-auto rounded-full mb-2">
+                        <h3 class="text-xl font-bold">Levi/Dark</h3>
+                        <div class="progress-bar mt-2">
+                            <div class="progress-fill" id="levi-health" style="width: 100%"></div>
+                        </div>
+                        <p class="text-sm mt-1">Health: <span id="levi-health-text">100</span>/100</p>
+                    </div>
+                    
+                    <!-- Ban -->
+                    <div class="target text-center p-4 rounded-lg bg-gray-800" id="ban-target" onclick="attack('Ban')">
+                        <img src="https://via.placeholder.com/150/00aa00/ffffff?text=Ban" alt="Ban" class="w-24 h-24 mx-auto rounded-full mb-2">
+                        <h3 class="text-xl font-bold">Ban</h3>
+                        <div class="progress-bar mt-2">
+                            <div class="progress-fill" id="ban-health" style="width: 100%"></div>
+                        </div>
+                        <p class="text-sm mt-1">Health: <span id="ban-health-text">100</span>/100</p>
+                    </div>
+                </div>
+                
+                <div class="mt-6">
+                    <h3 class="text-xl font-bold mb-2">Select Your Killer:</h3>
+                    <select id="killer-select" class="w-full p-2 rounded bg-gray-800 border border-gray-700">
+                        <option value="Keen">Keen</option>
+                        <option value="Kyle">Kyle</option>
+                        <option value="Tri">Tri</option>
+                        <option value="Soldier">Soldier</option>
+                        <option value="Zen">Zen</option>
+                        <option value="Ban">Ban</option>
+                        <option value="Void">Void</option>
+                        <option value="BD_Ravynthal">BD_Ravynthal</option>
+                        <option value="Yosh">Yosh</option>
+                        <option value="DUCK">DUCK</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Stats Section -->
+            <div class="demon-card p-6 rounded-lg">
+                <h2 class="text-2xl font-bold mb-6 demon-text">Kill Statistics</h2>
+                
+                <div class="grid grid-cols-4 gap-4 text-center mb-8">
+                    <div>
+                        <p class="text-gray-400">Total Kills</p>
+                        <p class="kill-count" id="total-kills">0</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-400">Zen Kills</p>
+                        <p class="kill-count" id="zen-kills">0</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-400">Kyle Kills</p>
+                        <p class="kill-count" id="kyle-kills">0</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-400">Levi Kills</p>
+                        <p class="kill-count" id="levi-kills">0</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-400">Ban Kills</p>
+                        <p class="kill-count" id="ban-kills">0</p>
+                    </div>
+                </div>
+                
+                <h3 class="text-xl font-bold mb-4">Kill Details</h3>
+                <div class="overflow-x-auto">
+                    <table class="stats-table w-full">
+                        <thead>
+                            <tr>
+                                <th>Killer</th>
+                                <th>Victim</th>
+                                <th>Kills</th>
+                            </tr>
+                        </thead>
+                        <tbody id="kill-details">
+                            <!-- Will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-6 flex justify-between">
+                    <button onclick="resetStats()" class="demon-btn py-2 px-4 rounded-lg font-bold transition duration-300 hover:bg-red-700">
+                        <i class="fas fa-redo mr-2"></i> Reset Stats
+                    </button>
+                    <button onclick="exportStats()" class="bg-gray-700 hover:bg-gray-600 py-2 px-4 rounded-lg font-bold transition duration-300">
+                        <i class="fas fa-download mr-2"></i> Export Stats
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-  <!-- Kill Details Table -->
-  <div class="overflow-x-auto mb-6">
-    <table class="min-w-full table-auto border border-white">
-      <thead>
-        <tr class="bg-gray-800">
-          <th class="px-4 py-2">Killer</th>
-          <th class="px-4 py-2">Victim</th>
-          <th class="px-4 py-2">Count</th>
-        </tr>
-      </thead>
-      <tbody id="kill-details"></tbody>
-    </table>
-  </div>
-
-  <button id="export-members" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded mb-4 hidden">
-    Export Members List
-  </button>
     <script>
-  // Firebase config
-  const firebaseConfig = {
-    databaseURL: "https://aoh-bd-clan-default-rtdb.firebaseio.com/"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+        // Game state
+        const gameState = {
+            targets: {
+                Zen: { health: 100, maxHealth: 100 },
+                Kyle: { health: 100, maxHealth: 100 },
+                Levi: { health: 100, maxHealth: 100 },
+                Ban: { health: 100, maxHealth: 100 }
+            },
+            stats: {
+                totalKills: 0,
+                zenKills: 0,
+                kyleKills: 0,
+                leviKills: 0,
+                banKills: 0,
+                killDetails: {} // Format: { "killer-victim": count }
+            },
+            currentKiller: "Keen"
+        };
 
-  const levelFilter = document.getElementById("level-filter");
-  const sortMethod = document.getElementById("sort-method");
-  const killerSelect = document.getElementById("killer-select");
-  const killDetails = document.getElementById("kill-details");
-
-  const healthBars = {
-    Zen: { bar: document.getElementById("zen-health"), count: 100, kills: 0, display: document.getElementById("zen-kills") },
-    Kyle: { bar: document.getElementById("kyle-health"), count: 100, kills: 0, display: document.getElementById("kyle-kills") },
-    Levi: { bar: document.getElementById("levi-health"), count: 100, kills: 0, display: document.getElementById("levi-kills") },
-    Ban: { bar: document.getElementById("ban-health"), count: 100, kills: 0, display: document.getElementById("ban-kills") }
-  };
-  let totalKills = 0;
-  const totalKillsDisplay = document.getElementById("total-kills");
-  const killLog = [];
-
-  function updateHealthDisplay(name) {
-    const bar = healthBars[name].bar;
-    const health = healthBars[name].count;
-    bar.style.width = `${health}%`;
-    bar.style.background = `linear-gradient(90deg, #ff4d4d, #ff1a1a)`;
-    bar.style.height = "20px";
-  }
-
-  function attack(name) {
-    if (!healthBars[name]) return;
-    healthBars[name].count -= 10;
-    if (healthBars[name].count <= 0) {
-      healthBars[name].kills++;
-      totalKills++;
-      const killer = killerSelect.value || "Unknown";
-      killLog.push({ killer, victim: name });
-
-      updateKillStats();
-      updateKillDetailsTable();
-      healthBars[name].count = 100; // reset health
-    }
-    updateHealthDisplay(name);
-  }
-
-  function updateKillStats() {
-    totalKillsDisplay.textContent = totalKills;
-    Object.entries(healthBars).forEach(([name, data]) => {
-      data.display.textContent = data.kills;
+        // Initialize the game
+        function initGame() {
+    loadStats(stats => {
+        if (stats) {
+            Object.assign(gameState.stats, stats);
+        }
+        updateStatsUI();
+        renderKillDetails();
     });
-  }
+            // Firebase configuration (same as your main site)
+const firebaseConfig = {
+    apiKey: "AIzaSyBDgadn_l0VLJmgCPzziGbwbXYaIfhn0vQ",
+    authDomain: "aoh-bd-clan.firebaseapp.com",
+    databaseURL: "https://aoh-bd-clan-default-rtdb.firebaseio.com/",
+    projectId: "aoh-bd-clan",
+    storageBucket: "aoh-bd-clan.firebasestorage.app",
+    messagingSenderId: "824398865971",
+    appId: "1:824398865971:web:139890878f47e251ad6546",
+    measurementId: "G-4V15NCH2RH"
+};
 
-  function updateKillDetailsTable() {
-    killDetails.innerHTML = "";
-    killLog.forEach(log => {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td class="border px-4 py-2">${log.killer}</td>
-        <td class="border px-4 py-2">${log.victim}</td>
-        <td class="border px-4 py-2">1</td>
-      `;
-      killDetails.appendChild(row);
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+            
+            // Set current killer from select
+            const killerSelect = document.getElementById('killer-select');
+            killerSelect.value = gameState.currentKiller;
+            killerSelect.addEventListener('change', function() {
+                gameState.currentKiller = this.value;
+            });
+            
+            // Update UI
+            updateStatsUI();
+            renderKillDetails();
+        }
+      function saveStats() {
+    database.ref('clickerStats').set(gameState.stats);
+}
+
+// Load stats from Firebase
+function loadStats(callback) {
+    database.ref('clickerStats').once('value').then(snapshot => {
+        if (snapshot.exists()) {
+            callback(snapshot.val());
+        }
     });
-  }
+}
 
-  function populateFiltersAndDropdowns(members) {
-    // Filter ranges
-    const levelRanges = Array.from({ length: 20 }, (_, i) => [i * 1000, (i + 1) * 1000]);
-    levelFilter.innerHTML = `<option value="all">All Levels</option>`;
-    levelRanges.forEach(([min, max]) => {
-      levelFilter.innerHTML += `<option value="${min}-${max}">${min}-${max}</option>`;
-    });
+        // Attack a target
+        function attack(targetName) {
+            const target = gameState.targets[targetName];
+            if (!target) return;
+            
+            // Apply damage (random between 5-15)
+            const damage = Math.floor(Math.random() * 11) + 5;
+            target.health = Math.max(0, target.health - damage);
+            
+            // Update UI
+            updateTargetUI(targetName);
+            
+            // Add hit animation
+            const targetElement = document.getElementById(`${targetName.toLowerCase()}-target`);
+            targetElement.classList.add('hit-animation');
+            setTimeout(() => {
+                targetElement.classList.remove('hit-animation');
+            }, 300);
+            
+            // Check if target is dead
+            if (target.health <= 0) {
+                killTarget(targetName);
+            }
+        }
 
-    killerSelect.innerHTML = `<option value="" disabled selected>Select Killer</option>`;
-    members.forEach(member => {
-      killerSelect.innerHTML += `<option value="${member.username}">${member.username}</option>`;
-    });
-  }
+        // Update target UI
+        function updateTargetUI(targetName) {
+            const target = gameState.targets[targetName];
+            const healthPercent = (target.health / target.maxHealth) * 100;
+            
+            document.getElementById(`${targetName.toLowerCase()}-health`).style.width = `${healthPercent}%`;
+            document.getElementById(`${targetName.toLowerCase()}-health-text`).textContent = target.health;
+        }
 
-  function renderMemberList(filtered) {
-    // For debugging: console.log(filtered);
-    // You could also render this to an HTML element if needed
-  }
+        // Kill a target
+        function killTarget(targetName) {
+            // Add death animation
+            const targetElement = document.getElementById(`${targetName.toLowerCase()}-target`);
+            targetElement.classList.add('death-animation');
+            
+            // Update stats
+            gameState.stats.totalKills++;
+            gameState.stats[`${targetName.toLowerCase()}Kills`]++;
+            
+            const killerVictimKey = `${gameState.currentKiller}-${targetName}`;
+            if (!gameState.stats.killDetails[killerVictimKey]) {
+                gameState.stats.killDetails[killerVictimKey] = 0;
+            }
+            gameState.stats.killDetails[killerVictimKey]++;
+            
+            // Save stats
+            saveStats();
+            
+            // Update UI
+            updateStatsUI();
+            renderKillDetails();
+            
+            // Respawn after delay
+            setTimeout(() => {
+                respawnTarget(targetName);
+            }, 1000);
+        }
 
-  function applyFiltersAndSort(members) {
-    const filterValue = levelFilter.value;
-    const sortValue = sortMethod.value;
+        // Respawn a target
+        function respawnTarget(targetName) {
+            const target = gameState.targets[targetName];
+            target.health = target.maxHealth;
+            
+            const targetElement = document.getElementById(`${targetName.toLowerCase()}-target`);
+            targetElement.classList.remove('death-animation');
+            targetElement.classList.add('respawn-animation');
+            
+            setTimeout(() => {
+                targetElement.classList.remove('respawn-animation');
+                updateTargetUI(targetName);
+            }, 500);
+        }
 
-    let filtered = [...members];
+        // Update stats UI
+        function updateStatsUI() {
+            document.getElementById('total-kills').textContent = gameState.stats.totalKills;
+            document.getElementById('zen-kills').textContent = gameState.stats.zenKills;
+            document.getElementById('kyle-kills').textContent = gameState.stats.kyleKills;
+            document.getElementById('levi-kills').textContent = gameState.stats.leviKills;
+            document.getElementById('ban-kills').textContent = gameState.stats.banKills;
+        }
 
-    if (filterValue !== "all") {
-      const [min, max] = filterValue.split("-").map(Number);
-      filtered = filtered.filter(m => m.level >= min && m.level < max);
-    }
+        // Render kill details table
+        function renderKillDetails() {
+            const tableBody = document.getElementById('kill-details');
+            tableBody.innerHTML = '';
+            
+            // Sort kill details by count (descending)
+            const sortedKills = Object.entries(gameState.stats.killDetails)
+                .sort((a, b) => b[1] - a[1]);
+            
+            sortedKills.forEach(([killerVictim, count]) => {
+                const [killer, victim] = killerVictim.split('-');
+                const row = document.createElement('tr');
+                
+                row.innerHTML = `
+                    <td>${killer}</td>
+                    <td>${victim}</td>
+                    <td>${count}</td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            // Add message if no kills yet
+            if (sortedKills.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td colspan="3" class="text-center py-4 text-gray-400">No kills recorded yet</td>
+                `;
+                tableBody.appendChild(row);
+            }
+        }
 
-    if (sortValue === "level-asc") {
-      filtered.sort((a, b) => a.level - b.level);
-    } else if (sortValue === "level-desc") {
-      filtered.sort((a, b) => b.level - a.level);
-    } else if (sortValue === "name-asc") {
-      filtered.sort((a, b) => a.username.localeCompare(b.username));
-    }
+        // Save stats to localStorage
+        function saveStats() {
+            localStorage.setItem('bdClanClickerStats', JSON.stringify(gameState.stats));
+        }
 
-    renderMemberList(filtered);
-  }
+        // Reset all stats
+        function resetStats() {
+            if (confirm('Are you sure you want to reset all statistics? This cannot be undone.')) {
+                gameState.stats = {
+                    totalKills: 0,
+                    zenKills: 0,
+                    kyleKills: 0,
+                    leviKills: 0,
+                    banKills: 0,
+                    killDetails: {}
+                };
+                
+                saveStats();
+                updateStatsUI();
+                renderKillDetails();
+            }
+        }
 
-  function fetchMembers() {
-    db.ref("clanData/members").once("value", snapshot => {
-      const members = snapshot.val() || [];
-      populateFiltersAndDropdowns(members);
-      applyFiltersAndSort(members);
-    });
-  }
+        // Export stats as JSON
+        function exportStats() {
+            const dataStr = JSON.stringify(gameState.stats, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+            
+            const exportName = 'bd-clan-kill-stats.json';
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportName);
+            linkElement.click();
+        }
 
-  levelFilter.addEventListener("change", fetchMembers);
-  sortMethod.addEventListener("change", fetchMembers);
-
-  // Init
-  Object.keys(healthBars).forEach(updateHealthDisplay);
-  fetchMembers();
-</script>
-
+        // Initialize the game when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initGame);
+    </script>
 </body>
 </html>
