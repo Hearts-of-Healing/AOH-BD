@@ -706,33 +706,39 @@
 
     // Create particle effects
     function createParticles(targetName) {
-      const targetElement = document.querySelector(`#targets div:has(h3:contains("${targetName}"))`);
-      if (!targetElement) return;
+  const targetElements = document.querySelectorAll('#targets > div');
+  let targetElement = null;
 
-      for (let i = 0; i < 15; i++) {
-        const particle = document.createElement('div');
-        particle.className = 'particle';
-        
-        // Random direction and distance
-        const angle = Math.random() * Math.PI * 2;
-        const distance = 20 + Math.random() * 30;
-        particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`);
-        particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`);
-        
-        // Random position around the attack button
-        const button = targetElement.querySelector('button');
-        const rect = button.getBoundingClientRect();
-        particle.style.left = `${rect.left + rect.width/2 + (Math.random() * 20 - 10)}px`;
-        particle.style.top = `${rect.top + rect.height/2 + (Math.random() * 20 - 10)}px`;
-        
-        document.body.appendChild(particle);
-        
-        // Remove particle after animation
-        setTimeout(() => {
-          particle.remove();
-        }, 600);
-      }
+  targetElements.forEach(div => {
+    const header = div.querySelector('h3');
+    if (header && header.textContent.trim() === targetName) {
+      targetElement = div;
     }
+  });
+
+  if (!targetElement) return;
+
+  for (let i = 0; i < 15; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'particle';
+
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 20 + Math.random() * 30;
+    particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`);
+    particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`);
+
+    const button = targetElement.querySelector('button');
+    const rect = button.getBoundingClientRect();
+    particle.style.left = `${rect.left + rect.width / 2 + (Math.random() * 20 - 10)}px`;
+    particle.style.top = `${rect.top + rect.height / 2 + (Math.random() * 20 - 10)}px`;
+
+    document.body.appendChild(particle);
+
+    setTimeout(() => {
+      particle.remove();
+    }, 600);
+  }
+}
 
     // Record a kill
     function recordKill(targetName) {
