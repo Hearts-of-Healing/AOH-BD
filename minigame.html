@@ -195,28 +195,30 @@
 
     // Load clan members for killer selection
     function loadMembers() {
-      document.getElementById("killer-select").disabled = true;
-      db.ref("clanData/members").once("value").then(snap => {
-        const members = snap.val() || [];
-        const select = document.getElementById("killer-select");
-        select.innerHTML = '';
-        
-        members.forEach(member => {
-          const opt = document.createElement("option");
-          opt.value = member.username;
-          opt.textContent = member.username;
-          select.appendChild(opt);
-        });
-        
-        // Initialize game data if this is first run
-        initializeGameData();
-      }).catch(error => {
-        console.error("Error loading members:", error);
-      })
-      .finally(() => {
-        document.getElementById("killer-select").disabled = false;
-    });  
-    }
+  document.getElementById("killer-select").disabled = true;
+  db.ref("clanData/members").once("value")
+    .then(snap => {
+      const members = snap.val() || [];
+      const select = document.getElementById("killer-select");
+      select.innerHTML = '';
+      
+      members.forEach(member => {
+        const opt = document.createElement("option");
+        opt.value = member.username;
+        opt.textContent = member.username;
+        select.appendChild(opt);
+      });
+      
+      initializeGameData();
+    })
+    .catch(error => {
+      console.error("Error loading members:", error);
+      alert("Failed to load members. Check console for details.");
+    })
+    .finally(() => {
+      document.getElementById("killer-select").disabled = false;
+    });
+}
 
     function showAdminControls() {
     if (!isAdmin) return;
