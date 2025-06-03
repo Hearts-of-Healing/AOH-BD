@@ -49,49 +49,95 @@
       width: 100%;
       margin: 10px 0;
     }
-    .coin-controls {
+    .control-section {
       background-color: #16213e;
       padding: 15px;
       border-radius: 8px;
       margin: 15px 0;
     }
+    .log-entry {
+      background-color: #0f0f2e;
+      margin: 5px 0;
+      padding: 10px;
+      border-left: 3px solid #ff4d4d;
+    }
+    .hidden {
+      display: none;
+    }
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      background-color: #16213e;
+      display: inline-block;
+      margin-right: 5px;
+    }
+    .tab.active {
+      background-color: #ff4d4d;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
   </style>
 </head>
 <body>
+  <!-- Login Section -->
   <div id="login-container" class="login-container">
-    <h1>BD Clan Admin Login</h1>
-    <input type="password" id="admin-key" class="login-input" placeholder="Enter Admin Key">
-    <button id="login-btn">Login</button>
+    <h1>BD Clan Admin Access</h1>
+    <p>Enter your verification code from the minigame:</p>
+    <input type="password" id="verification-code" class="login-input" placeholder="Verification Code">
+    <button id="login-btn">Verify</button>
     <div id="login-error" class="error-message"></div>
   </div>
 
-  <div id="admin-panel" style="display: none;">
-    <h1>🛠 BD Clan Admin Panel</h1>
-
-    <div class="coin-controls">
-      <h2>💰 Coin Management</h2>
-      <input type="number" id="coin-amount" placeholder="Amount" class="login-input">
-      <button id="add-coins-btn">Add Coins to All</button>
-      <button id="reset-coins-btn">Reset All Coins</button>
+  <!-- Admin Panel (hidden until login) -->
+  <div id="admin-panel" class="hidden">
+    <!-- Navigation Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="controls">Admin Controls</div>
+      <div class="tab" data-tab="logs" id="logs-tab">Admin Logs</div>
     </div>
 
-    <label for="player-select">👥 Select Player:</label>
-    <select id="player-select" style="margin: 10px 0;"></select><br />
+    <!-- Admin Controls Tab -->
+    <div id="controls" class="tab-content active">
+      <h1>🛠 BD Clan Admin Panel</h1>
+      <p>Logged in as: <span id="admin-username"></span></p>
 
-    <button id="ban-btn">🚫 Ban</button>
-    <button id="timeout-btn">⏳ Timeout 1hr</button>
-    <button id="kill-btn">💀 Add Kill</button>
+      <div class="control-section">
+        <h2>💰 Coin Management</h2>
+        <input type="number" id="coin-amount" placeholder="Amount" class="login-input">
+        <button id="add-coins-btn">Add Coins to All</button>
+        <button id="reset-coins-btn">Reset All Coins</button>
+      </div>
 
-    <hr />
+      <div class="control-section">
+        <h2>👥 Player Management</h2>
+        <label for="player-select">Select Player:</label>
+        <select id="player-select"></select><br />
+        <button id="ban-btn">🚫 Ban</button>
+        <button id="timeout-btn">⏳ Timeout 1hr</button>
+        <button id="kill-btn">💀 Add Kill</button>
+      </div>
 
-    <h2>📣 Send Announcement</h2>
-    <input id="announcement-input" placeholder="Message..." style="width: 60%;" />
-    <button id="announce-btn">Send</button>
+      <div class="control-section">
+        <h2>📣 Announcements</h2>
+        <input id="announcement-input" placeholder="Message..." style="width: 60%;" />
+        <button id="announce-btn">Send</button>
+      </div>
 
-    <hr />
+      <div class="control-section">
+        <h2>🎁 Global Gifts</h2>
+        <button id="gift-btn">Send 1000 Gold to All</button>
+      </div>
+    </div>
 
-    <h2>🎁 Global Gift</h2>
-    <button id="gift-btn">Send 1000 Gold to All</button>
+    <!-- Admin Logs Tab -->
+    <div id="logs" class="tab-content">
+      <h2>📜 Admin Logs</h2>
+      <div id="log-list"></div>
+    </div>
   </div>
 
   <script>
@@ -109,79 +155,190 @@
 
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
+    const db = firebase.database();
+
+    // Global state
+    let currentUser = null;
+    let isAdmin = false;
 
     // DOM elements
     const loginContainer = document.getElementById('login-container');
     const adminPanel = document.getElementById('admin-panel');
     const loginBtn = document.getElementById('login-btn');
-    const adminKeyInput = document.getElementById('admin-key');
+    const verificationInput = document.getElementById('verification-code');
     const loginError = document.getElementById('login-error');
+    const adminUsername = document.getElementById('admin-username');
+    const logsTab = document.getElementById('logs-tab');
+    const logList = document.getElementById('log-list');
 
-    // Check admin credentials
-    function checkAdminKey(key) {
-      return new Promise((resolve, reject) => {
-        database.ref('adminKey').once('value')
-          .then(snapshot => {
-            if (snapshot.exists() && snapshot.val() === key) {
-              resolve(true);
-            } else {
-              resolve(false);
-            }
-          })
-          .catch(error => {
-            console.error("Error checking admin key:", error);
-            reject(error);
-          });
+    // Initialize when page loads
+    document.addEventListener('DOMContentLoaded', () => {
+      setupEventListeners();
+    });
+
+    function setupEventListeners() {
+      // Login button
+      loginBtn.addEventListener('click', verifyUser);
+      
+      // Allow pressing Enter to login
+      verificationInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          verifyUser();
+        }
       });
+      
+      // Tab switching
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+          document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+          
+          tab.classList.add('active');
+          document.getElementById(tab.dataset.tab).classList.add('active');
+        });
+      });
+      
+      // Set up admin control buttons
+      document.getElementById('add-coins-btn').addEventListener('click', addCoinsToAll);
+      document.getElementById('reset-coins-btn').addEventListener('click', resetAllCoins);
+      document.getElementById('ban-btn').addEventListener('click', banPlayer);
+      document.getElementById('timeout-btn').addEventListener('click', () => timeoutPlayer(60));
+      document.getElementById('kill-btn').addEventListener('click', addKill);
+      document.getElementById('announce-btn').addEventListener('click', sendAnnouncement);
+      document.getElementById('gift-btn').addEventListener('click', giftAll);
     }
 
-    // Load players
-    function loadPlayers() {
-      return new Promise((resolve, reject) => {
-        database.ref('players').once('value')
-          .then(snapshot => {
-            const select = document.getElementById("player-select");
-            select.innerHTML = "";
-            
-            if (snapshot.exists()) {
-              snapshot.forEach((childSnapshot) => {
-                const opt = document.createElement("option");
-                opt.value = childSnapshot.key;
-                opt.textContent = childSnapshot.val().name || childSnapshot.key;
-                select.appendChild(opt);
-              });
-              resolve();
-            } else {
-              loginError.textContent = "No players found";
-              reject("No players found");
-            }
-          })
-          .catch(error => {
-            console.error("Error loading players:", error);
-            loginError.textContent = "Failed to load players";
-            reject(error);
-          });
-      });
-    }
-
-    // Coin management functions
-    async function addCoinsToAll() {
-      const amount = parseInt(document.getElementById('coin-amount').value);
-      if (isNaN(amount) || amount <= 0) {
-        alert("Please enter a valid positive number");
+    // Verify user using minigame verification code
+    async function verifyUser() {
+      const code = verificationInput.value.trim();
+      if (!code) {
+        showError("Please enter your verification code");
         return;
       }
-      
+
       try {
-        const snapshot = await database.ref('minigameStats').once('value');
+        // Check all killers for matching code
+        const snapshot = await db.ref('minigameKillers').once('value');
+        if (!snapshot.exists()) {
+          showError("No users found in the system");
+          return;
+        }
+
+        let userFound = null;
+        snapshot.forEach(childSnapshot => {
+          const user = childSnapshot.val();
+          if (user.code === code) {
+            userFound = {
+              username: childSnapshot.key,
+              data: user
+            };
+          }
+        });
+
+        if (!userFound) {
+          showError("Invalid verification code");
+          return;
+        }
+
+        // Successfully verified
+        currentUser = userFound.username;
+        adminUsername.textContent = currentUser;
+        
+        // Check if user is BD_Ravynthal (only they can see logs)
+        if (currentUser === "BD_Ravynthal") {
+          logsTab.classList.remove('hidden');
+        } else {
+          logsTab.classList.add('hidden');
+        }
+
+        // Hide login, show admin panel
+        loginContainer.classList.add('hidden');
+        adminPanel.classList.remove('hidden');
+        
+        // Load initial data
+        loadPlayers();
+        loadAdminLogs();
+        
+        // Log this admin access
+        logAdminAction(currentUser, "Accessed admin panel");
+
+      } catch (error) {
+        console.error("Verification error:", error);
+        showError("Error verifying code. Please try again.");
+      }
+    }
+
+    // Load players for dropdown
+    function loadPlayers() {
+      db.ref("clanData/members").once('value')
+        .then(snapshot => {
+          const members = snapshot.val() || [];
+          const select = document.getElementById("player-select");
+          select.innerHTML = '';
+          
+          members.forEach(member => {
+            const opt = document.createElement("option");
+            opt.value = member.username;
+            opt.textContent = member.username;
+            select.appendChild(opt);
+          });
+        })
+        .catch(error => {
+          console.error("Error loading players:", error);
+        });
+    }
+
+    // Load admin logs (only visible to BD_Ravynthal)
+    function loadAdminLogs() {
+      if (currentUser !== "BD_Ravynthal") return;
+      
+      db.ref('adminLogs').on('value', snapshot => {
+        logList.innerHTML = '';
+        
+        if (!snapshot.exists()) {
+          logList.innerHTML = "<p>No logs available</p>";
+          return;
+        }
+
+        const logs = [];
+        snapshot.forEach(logSnapshot => {
+          logs.push(logSnapshot.val());
+        });
+
+        // Sort by time (newest first)
+        logs.sort((a, b) => new Date(b.time) - new Date(a.time));
+        
+        // Display logs
+        logs.forEach(log => {
+          const div = document.createElement("div");
+          div.className = "log-entry";
+          div.innerHTML = `
+            <strong>${log.username}</strong> - ${log.action} 
+            <br><small>${new Date(log.time).toLocaleString()}</small>
+          `;
+          logList.appendChild(div);
+        });
+      });
+    }
+
+    // ADMIN FUNCTIONS
+
+    // Coin management
+    async function addCoinsToAll() {
+      const amount = parseInt(document.getElementById('coin-amount').value);
+      if (isNaN(amount) {
+        alert("Please enter a valid number");
+        return;
+      }
+
+      try {
+        const snapshot = await db.ref('minigameStats').once('value');
         if (snapshot.exists()) {
           const stats = snapshot.val();
           stats.coins = (stats.coins || 0) + amount;
-          await database.ref('minigameStats').update({ coins: stats.coins });
+          await db.ref('minigameStats').update({ coins: stats.coins });
+          logAdminAction(currentUser, `Added ${amount} coins to all players`);
           alert(`Added ${amount} coins to all players`);
-        } else {
-          alert("No minigame stats found");
         }
       } catch (error) {
         console.error("Error adding coins:", error);
@@ -193,7 +350,8 @@
       if (!confirm("Reset all coins to zero?")) return;
       
       try {
-        await database.ref('minigameStats/coins').set(0);
+        await db.ref('minigameStats/coins').set(0);
+        logAdminAction(currentUser, "Reset all coins to zero");
         alert("All coins reset to zero");
       } catch (error) {
         console.error("Error resetting coins:", error);
@@ -201,54 +359,95 @@
       }
     }
 
-    // Initialize the admin panel
-    async function initAdminPanel() {
-      try {
-        await loadPlayers();
-        
-        // Set up event listeners
-        document.getElementById("ban-btn").onclick = banPlayer;
-        document.getElementById("timeout-btn").onclick = timeoutPlayer;
-        document.getElementById("announce-btn").onclick = sendAnnouncement;
-        document.getElementById("gift-btn").onclick = giftAll;
-        document.getElementById("kill-btn").onclick = addKill;
-        document.getElementById("add-coins-btn").onclick = addCoinsToAll;
-        document.getElementById("reset-coins-btn").onclick = resetAllCoins;
-        
-        loginContainer.style.display = "none";
-        adminPanel.style.display = "block";
-      } catch (error) {
-        console.error("Admin panel initialization failed:", error);
+    // Player management
+    function banPlayer() {
+      const player = document.getElementById("player-select").value;
+      if (!player) return;
+      
+      if (confirm(`Ban ${player}? This cannot be undone.`)) {
+        db.ref(`minigameKillers/${player}`).remove()
+          .then(() => {
+            logAdminAction(currentUser, `Banned player: ${player}`);
+            alert(`${player} has been banned`);
+          });
       }
     }
 
-    // Login button handler
-    loginBtn.addEventListener('click', async () => {
-      const key = adminKeyInput.value.trim();
-      if (!key) {
-        loginError.textContent = "Please enter an admin key";
-        return;
-      }
+    function timeoutPlayer(minutes) {
+      const player = document.getElementById("player-select").value;
+      if (!player) return;
       
-      try {
-        const isValid = await checkAdminKey(key);
-        if (isValid) {
-          await initAdminPanel();
-        } else {
-          loginError.textContent = "Invalid admin key";
-        }
-      } catch (error) {
-        loginError.textContent = "Authentication failed. Please try again.";
-        console.error("Authentication error:", error);
-      }
-    });
+      const timeoutEnd = Date.now() + (minutes * 60000);
+      db.ref(`minigameKillers/${player}/timeout`).set(timeoutEnd)
+        .then(() => {
+          logAdminAction(currentUser, `Timed out ${player} for ${minutes} minutes`);
+          alert(`${player} timed out for ${minutes} minutes`);
+        });
+    }
 
-    // Allow pressing Enter to login
-    adminKeyInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        loginBtn.click();
-      }
-    });
+    function addKill() {
+      const player = document.getElementById("player-select").value;
+      if (!player) return;
+      
+      db.ref(`minigameKillers/${player}/kills`).transaction(kills => {
+        kills = kills || {};
+        kills.adminGranted = (kills.adminGranted || 0) + 1;
+        return kills;
+      }).then(() => {
+        logAdminAction(currentUser, `Added kill to ${player}`);
+        alert(`Added kill to ${player}`);
+      });
+    }
+
+    // Announcements
+    function sendAnnouncement() {
+      const message = document.getElementById("announcement-input").value;
+      if (!message) return;
+      
+      db.ref('announcements').push({
+        message: message,
+        timestamp: Date.now(),
+        from: currentUser
+      }).then(() => {
+        logAdminAction(currentUser, `Sent announcement: ${message}`);
+        alert("Announcement sent!");
+        document.getElementById("announcement-input").value = "";
+      });
+    }
+
+    // Global gifts
+    function giftAll() {
+      if (!confirm("Send 1000 gold to all players?")) return;
+      
+      db.ref('minigameKillers').once('value').then(snapshot => {
+        const updates = {};
+        snapshot.forEach(childSnapshot => {
+          updates[`${childSnapshot.key}/coins`] = (childSnapshot.val().coins || 0) + 1000;
+        });
+        
+        db.ref().update(updates).then(() => {
+          logAdminAction(currentUser, "Sent 1000 gold to all players");
+          alert("Gift sent to all players!");
+        });
+      });
+    }
+
+    // Helper functions
+    function showError(message) {
+      loginError.textContent = message;
+      loginError.classList.remove('hidden');
+    }
+
+    function logAdminAction(username, action) {
+      const logEntry = {
+        username: username,
+        action: action,
+        time: new Date().toISOString()
+      };
+      
+      db.ref("adminLogs").push(logEntry)
+        .catch(error => console.error("Error logging admin action:", error));
+    }
   </script>
 </body>
 </html>
