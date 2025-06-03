@@ -8,6 +8,47 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <style>
+    .navbar {
+    background-color: rgba(26, 26, 46, 0.9);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 77, 77, 0.2);
+}
+
+.nav-link {
+    position: relative;
+    padding: 0.5rem 1rem;
+    transition: all 0.3s ease;
+}
+
+.nav-link:hover {
+    color: #ff4d4d;
+}
+
+.nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background-color: #ff4d4d;
+    transition: width 0.3s ease;
+}
+
+.nav-link:hover::after {
+    width: 100%;
+}
+
+.mobile-menu {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+.mobile-menu.open {
+    max-height: 500px;
+    transition: max-height 0.3s ease-in;
+}
     .hidden {
   display: none;
 }
@@ -154,6 +195,7 @@
 
     // Load clan members for killer selection
     function loadMembers() {
+      document.getElementById("killer-select").disabled = true;
       db.ref("clanData/members").once("value").then(snap => {
         const members = snap.val() || [];
         const select = document.getElementById("killer-select");
@@ -171,8 +213,21 @@
       }).catch(error => {
         console.error("Error loading members:", error);
       });
+      .finally(() => {
+        document.getElementById("killer-select").disabled = false;
+    });  
     }
 
+    function showAdminControls() {
+    if (!isAdmin) return;
+    
+    // Remove existing admin panel if it exists
+    const existingPanel = document.getElementById('admin-panel');
+    if (existingPanel) existingPanel.remove();
+    
+    // Create and show admin panel
+    showAdminPanel();
+}
     // Initialize game data structures if they don't exist
     function initializeGameData() {
       const initData = {
@@ -214,6 +269,9 @@
       document.getElementById("code-input-area").classList.remove("hidden");
       document.getElementById("code-input").focus();
     }
+    function toggleMobileMenu() {
+    document.querySelector('.mobile-menu').classList.toggle('open');
+}
 
     // Confirm killer with code
     function confirmKiller() {
@@ -278,10 +336,10 @@
 
     // Load targets and stats
     function loadGameData() {
-      db.ref("minigameTargets").on("value", snap => {
-        gameState.targets = snap.val() || {};
-        renderTargets();
-      });
+     db.ref("minigameKillers").once("value").then(snap => {
+    gameState.killers = snap.val() || {};
+    if (isAdmin) showAdminControls();
+});
       
       db.ref("minigameStats").on("value", snap => {
         gameState.stats = snap.val() || { totalKills: 0, killDetails: {} };
@@ -527,6 +585,25 @@ function verifyAdminKey() {
   });
 }
 
+    function logAdminAction(adminName, action) {
+    const logEntry = {
+        username: adminName,
+        action: action,
+        time: new Date().toISOString()
+    };
+    
+    db.ref("adminLogs").push(logEntry)
+        .catch(error => console.error("Error logging admin action:", error));
+}
+
+    async function attack(targetName) {
+    try {
+        // Existing attack code
+    } catch (error) {
+        console.error("Attack failed:", error);
+        alert("Attack failed. Please try again.");
+    }
+}
 // ADMIN PANEL FUNCTIONS
 function showAdminPanel() {
   const panel = document.createElement('div');
