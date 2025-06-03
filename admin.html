@@ -108,8 +108,8 @@
       <div class="control-section">
         <h2>💰 Coin Management</h2>
         <input type="number" id="coin-amount" placeholder="Amount" class="login-input">
-        <button id="add-coins-btn">Add Coins to All</button>
-        <button id="reset-coins-btn">Reset All Coins</button>
+        <button id="add-coins-btn">Add Coins to Player</button>
+        <button id="reset-coins-btn">Reset Player Coins</button>
       </div>
 
       <div class="control-section">
@@ -199,13 +199,14 @@
       });
       
       // Set up admin control buttons
-      document.getElementById('add-coins-btn').addEventListener('click', addCoinsToAll);
-      document.getElementById('reset-coins-btn').addEventListener('click', resetAllCoins);
+      document.getElementById('add-coins-btn').addEventListener('click', addCoinsToPlayer);
+      document.getElementById('reset-coins-btn').addEventListener('click', resetPlayerCoins);
       document.getElementById('ban-btn').addEventListener('click', banPlayer);
       document.getElementById('timeout-btn').addEventListener('click', () => timeoutPlayer(60));
       document.getElementById('kill-btn').addEventListener('click', addKill);
       document.getElementById('announce-btn').addEventListener('click', sendAnnouncement);
       document.getElementById('gift-btn').addEventListener('click', giftAll);
+      
     }
 
     // Verify user using minigame verification code
@@ -270,23 +271,36 @@
 
     // Load players for dropdown
     function loadPlayers() {
-      db.ref("clanData/members").once('value')
-        .then(snapshot => {
-          const members = snapshot.val() || [];
-          const select = document.getElementById("player-select");
-          select.innerHTML = '';
-          
-          members.forEach(member => {
-            const opt = document.createElement("option");
-            opt.value = member.username;
-            opt.textContent = member.username;
-            select.appendChild(opt);
-          });
-        })
-        .catch(error => {
-          console.error("Error loading players:", error);
-        });
-    }
+  // Load players
+  db.ref("clanData/members").once('value')
+    .then(snapshot => {
+      const members = snapshot.val() || [];
+      const select = document.getElementById("player-select");
+      select.innerHTML = '';
+      
+      members.forEach(member => {
+        const opt = document.createElement("option");
+        opt.value = member.username;
+        opt.textContent = member.username;
+        select.appendChild(opt);
+      });
+    });
+
+  // Load targets for kill selection
+  db.ref("minigameTargets").once('value')
+    .then(snapshot => {
+      const targets = snapshot.val() || {};
+      const select = document.getElementById("target-select");
+      select.innerHTML = '';
+
+      Object.keys(targets).forEach(name => {
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        select.appendChild(opt);
+      });
+    });
+}
 
     // Load admin logs (only visible to BD_Ravynthal)
     function loadAdminLogs() {
@@ -324,40 +338,42 @@
     // ADMIN FUNCTIONS
 
     // Coin management
-    async function addCoinsToAll() {
-      const amount = parseInt(document.getElementById('coin-amount').value);
-      if (isNaN(amount)) {
-        alert("Please enter a valid number");
-        return;
-      }
+async function addCoinsToPlayer() {
+  const player = document.getElementById("player-select").value;
+  const amount = parseInt(document.getElementById('coin-amount').value);
+  if (!player || isNaN(amount)) {
+    alert("Select a player and enter a valid number");
+    return;
+  }
 
-      try {
-        const snapshot = await db.ref('minigameStats').once('value');
-        if (snapshot.exists()) {
-          const stats = snapshot.val();
-          stats.coins = (stats.coins || 0) + amount;
-          await db.ref('minigameStats').update({ coins: stats.coins });
-          logAdminAction(currentUser, `Added ${amount} coins to all players`);
-          alert(`Added ${amount} coins to all players`);
-        }
-      } catch (error) {
-        console.error("Error adding coins:", error);
-        alert("Failed to add coins");
-      }
-    }
+  try {
+    const userRef = db.ref(`minigameKillers/${player}/coins`);
+    const snap = await userRef.once("value");
+    const current = snap.val() || 0;
+    await userRef.set(current + amount);
 
-    async function resetAllCoins() {
-      if (!confirm("Reset all coins to zero?")) return;
-      
-      try {
-        await db.ref('minigameStats/coins').set(0);
-        logAdminAction(currentUser, "Reset all coins to zero");
-        alert("All coins reset to zero");
-      } catch (error) {
-        console.error("Error resetting coins:", error);
-        alert("Failed to reset coins");
-      }
-    }
+    logAdminAction(currentUser, `Gave ${amount} coins to ${player}`);
+    alert(`Gave ${amount} coins to ${player}`);
+  } catch (err) {
+    console.error("Error giving coins:", err);
+    alert("Failed to give coins");
+  }
+}
+   async function resetPlayerCoins() {
+  const player = document.getElementById("player-select").value;
+  if (!player) return;
+
+  if (!confirm(`Reset ${player}'s coins to 0?`)) return;
+
+  try {
+    await db.ref(`minigameKillers/${player}/coins`).set(0);
+    logAdminAction(currentUser, `Reset coins for ${player}`);
+    alert(`${player}'s coins reset to 0`);
+  } catch (err) {
+    console.error("Error resetting coins:", err);
+    alert("Failed to reset coins");
+  }
+}
 
     // Player management
     function banPlayer() {
@@ -385,19 +401,20 @@
         });
     }
 
-    function addKill() {
-      const player = document.getElementById("player-select").value;
-      if (!player) return;
-      
-      db.ref(`minigameKillers/${player}/kills`).transaction(kills => {
-        kills = kills || {};
-        kills.adminGranted = (kills.adminGranted || 0) + 1;
-        return kills;
-      }).then(() => {
-        logAdminAction(currentUser, `Added kill to ${player}`);
-        alert(`Added kill to ${player}`);
-      });
-    }
+function addKill() {
+  const player = document.getElementById("player-select").value;
+  const target = document.getElementById("target-select").value;
+  if (!player || !target) return;
+
+  db.ref(`minigameKillers/${player}/kills`).transaction(kills => {
+    kills = kills || {};
+    kills[target] = (kills[target] || 0) + 1;
+    return kills;
+  }).then(() => {
+    logAdminAction(currentUser, `Added kill to ${player} on ${target}`);
+    alert(`Added 1 kill to ${player} on ${target}`);
+  });
+}
 
     // Announcements
     function sendAnnouncement() {
