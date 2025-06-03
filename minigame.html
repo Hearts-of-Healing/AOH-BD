@@ -212,7 +212,7 @@
         initializeGameData();
       }).catch(error => {
         console.error("Error loading members:", error);
-      });
+      })
       .finally(() => {
         document.getElementById("killer-select").disabled = false;
     });  
@@ -333,6 +333,29 @@
       document.getElementById("coin-count").textContent = gameState.killerData.coins || 0;
       loadGameData();
     }
+    function showMainMenu() {
+  // Hide all other sections and show main menu
+  console.log("Showing main menu");
+  window.location.href = "index.html"; // Or your preferred navigation method
+}
+
+function showMembersDashboard() {
+  // Hide all other sections and show members dashboard
+  console.log("Showing members dashboard");
+  window.location.href = "admin-log.html"; // Or your preferred navigation method
+}
+
+function showAdminAccess() {
+  // Hide all other sections and show admin access
+  console.log("Showing admin access");
+  window.location.href = "admin.html"; // Or your preferred navigation method
+}
+
+function showAdminNote() {
+  // Hide all other sections and show admin notes
+  console.log("Showing admin notes");
+  window.location.href = "minigame.html"; // Or your preferred navigation method
+}
 
     // Load targets and stats
     function loadGameData() {
@@ -711,7 +734,7 @@ function timeoutPlayer(minutes) {
 
 function customTimeout() {
   const mins = parseInt(document.getElementById('custom-timeout').value);
-  if (isNaN(mins) return alert("Enter valid minutes");
+  if (isNaN(mins)) return alert("Enter valid minutes");
   timeoutPlayer(mins);
 }
 
