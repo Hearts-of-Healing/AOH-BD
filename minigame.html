@@ -197,12 +197,12 @@
 
     // Generate a 5-digit member code
     function generateMemberCode(username) {
-      let hash = 0;
-      for (let i = 0; i < username.length; i++) {
-        hash = (hash << 5) - hash + username.charCodeAt(i);
-      }
-      return (10000 + (Math.abs(hash) % 90000).toString();
-    }
+  let hash = 0;
+  for (let i = 0; i < username.length; i++) {
+    hash = (hash << 5) - hash + username.charCodeAt(i);
+  }
+  return (10000 + (Math.abs(hash) % 90000)).toString();
+}
 
     // Show the game area after successful verification
     function showGameArea() {
