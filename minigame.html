@@ -245,6 +245,20 @@
         }
       };
 
+       db.ref("minigameTargets").once('value').then(snap => {
+        if (!snap.exists()) {
+            return db.ref("minigameTargets").set(initData.minigameTargets)
+                .then(() => {
+                    console.log("Initial targets created");
+                    gameState.targets = initData.minigameTargets;
+                    renderTargets();
+                });
+        }
+        return Promise.resolve();
+    }).catch(error => {
+        console.error("Error initializing targets:", error);
+    });
+
       // Check and initialize each node
       Promise.all([
         checkAndInitNode('minigameTargets', initData.minigameTargets),
@@ -361,42 +375,62 @@ function showAdminNote() {
 
     // Load targets and stats
     function loadGameData() {
-     db.ref("minigameKillers").once("value").then(snap => {
-    gameState.killers = snap.val() || {};
-    if (isAdmin) showAdminControls();
-});
-      
-      db.ref("minigameStats").on("value", snap => {
+    // Load killers data
+    db.ref("minigameKillers").once("value").then(snap => {
+        gameState.killers = snap.val() || {};
+        if (isAdmin) showAdminControls();
+    });
+    
+    // Load targets data
+    db.ref("minigameTargets").on("value", snap => {
+        gameState.targets = snap.val() || {};
+        renderTargets(); 
+    });
+    
+    // Load stats data
+    db.ref("minigameStats").on("value", snap => {
         gameState.stats = snap.val() || { totalKills: 0, killDetails: {} };
         document.getElementById("total-kills").textContent = gameState.stats.totalKills;
         renderKillerStats();
-      });
-    }
-
+    });
     // Render targets with health bars
-    function renderTargets() {
-      const container = document.getElementById("targets");
-      container.innerHTML = "";
-      
-      for (const name in gameState.targets) {
+   console.log("Attempting to render targets..."); // Debug log
+    console.log("Current targets:", gameState.targets); // Debug log
+    
+    const container = document.getElementById("targets");
+    if (!container) {
+        console.error("Targets container not found!");
+        return;
+    }
+    
+    container.innerHTML = "";
+    
+    if (!gameState.targets || Object.keys(gameState.targets).length === 0) {
+        container.innerHTML = "<p class='text-red-500'>No targets available!</p>";
+        return;
+    }
+    
+    for (const name in gameState.targets) {
         const target = gameState.targets[name];
         const healthPercent = (target.health / target.maxHealth) * 100;
         
         const div = document.createElement("div");
         div.className = "p-4 bg-gray-800 rounded-lg";
-        div.innerHTML =`
-          <h3 class="text-lg font-bold">${name}</h3>
-          <p>Health: ${target.health}/${target.maxHealth}</p>
-          <div class="health-bar">
-            <div class="health-fill" style="width: ${healthPercent}%"></div>
-          </div>
-          <button onclick="attack('${name}')" 
-                  class="mt-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded w-full">
-            Attack (-10 HP)
-          </button> `;
+        div.innerHTML = `
+            <h3 class="text-lg font-bold">${name}</h3>
+            <p>Health: <span>${target.health}</span>/${target.maxHealth}</p>
+            <div class="health-bar">
+                <div class="health-fill" style="width: ${healthPercent}%"></div>
+            </div>
+            <button onclick="attack('${name}')" 
+                    class="mt-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded w-full">
+                Attack (-10 HP)
+            </button>`;
         container.appendChild(div);
-      }
     }
+    
+    console.log("Targets rendered successfully"); // Debug log
+}
 
     // Render killer-specific stats
     function renderKillerStats() {
