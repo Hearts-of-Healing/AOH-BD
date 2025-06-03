@@ -290,137 +290,136 @@
       }
     }
 
-    async function syncMinigameKillersWithClanMembers() {
-  const membersSnap = await db.ref("clanData/members").once("value");
-  const killersSnap = await db.ref("minigameKillers").once("value");
+     async function syncMinigameKillersWithClanMembers() {
+      const membersSnap = await db.ref("clanData/members").once("value");
+      const killersSnap = await db.ref("minigameKillers").once("value");
 
-  const members = membersSnap.val() || [];
-  const killers = killersSnap.val() || {};
+      const members = membersSnap.val() || [];
+      const killers = killersSnap.val() || {};
 
-  const updates = {};
-
-  members.forEach(member => {
-    const username = member.username;
-    if (!killers[username]) {
-      updates[`minigameKillers/${username}`] = {
-        code: generateCode(), // optional unique code
-        coins: 0,
-        lastDailyReward: "",
-        kills: {}
-      };
-    }
-  });
-
-  if (Object.keys(updates).length > 0) {
-    await db.ref().update(updates);
-    console.log("Synced missing minigameKillers:", updates);
-  }
-}
-
-// Helper function to generate 5-digit code
-function generateCode() {
-  return Math.floor(
-
-
-    // Load players for dropdown
-      function loadPlayers() {
-  db.ref("clanData/members").once('value')
-    .then(snapshot => {
-      const members = snapshot.val() || [];
-      const select1 = document.getElementById("player-select");
-      const select2 = document.getElementById("tools-player-select");
-      select1.innerHTML = '';
-      select2.innerHTML = '';
+      const updates = {};
 
       members.forEach(member => {
-        const opt1 = document.createElement("option");
-        opt1.value = member.username;
-        opt1.textContent = member.username;
-        select1.appendChild(opt1);
-
-        const opt2 = document.createElement("option");
-        opt2.value = member.username;
-        opt2.textContent = member.username;
-        select2.appendChild(opt2);
+        const username = member.username;
+        if (!killers[username]) {
+          updates[`minigameKillers/${username}`] = {
+            code: generateCode(),
+            coins: 0,
+            lastDailyReward: "",
+            kills: {}
+          };
+        }
       });
-    });
-  
-    // Load targets for kill selection
-    db.ref("minigameTargets").once('value')
-      .then(snapshot => {
-        const targets = snapshot.val() || {};
-        const select = document.getElementById("target-select");
-        select.innerHTML = '';
-  
-        Object.keys(targets).forEach(name => {
-          const opt = document.createElement("option");
-          opt.value = name;
-          opt.textContent = name;
-          select.appendChild(opt);
-        });
-      });
-  }
 
-    function removeKills() {
-  const player = document.getElementById("tools-player-select").value;
-  const amount = parseInt(document.getElementById("remove-kills-amount").value);
-  if (!player || isNaN(amount) || amount < 1) {
-    alert("Enter a valid amount and select a player");
-    return;
-  }
-
-  db.ref(`minigameKillers/${player}/kills`).once('value').then(snapshot => {
-    const kills = snapshot.val() || {};
-    let removed = 0;
-
-    for (const target in kills) {
-      if (kills[target] > 0 && removed < amount) {
-        const toRemove = Math.min(amount - removed, kills[target]);
-        kills[target] -= toRemove;
-        if (kills[target] <= 0) delete kills[target];
-        removed += toRemove;
+      if (Object.keys(updates).length > 0) {
+        await db.ref().update(updates);
+        console.log("Synced missing minigameKillers:", updates);
       }
     }
 
-    db.ref(`minigameKillers/${player}/kills`).set(kills)
-      .then(() => {
-        logAdminAction(currentUser, `Removed ${removed} kills from ${player}`);
-        alert(`Removed ${removed} kills from ${player}`);
-      });
-  });
-}
-
-function disableTimeout() {
-  const player = document.getElementById("tools-player-select").value;
-  if (!player) return;
-
-  db.ref(`minigameKillers/${player}/timeout`).remove()
-    .then(() => {
-      logAdminAction(currentUser, `Disabled timeout for ${player}`);
-      alert(`Timeout disabled for ${player}`);
-    });
-}
-
-function unbanPlayer() {
-  const player = document.getElementById("tools-player-select").value;
-  if (!player) return;
-
-  db.ref(`bannedPlayers/${player}`).once('value').then(snapshot => {
-    const data = snapshot.val();
-    if (!data) {
-      alert("Player is not currently banned");
-      return;
+    // Complete the generateCode function
+    function generateCode() {
+      return Math.floor(10000 + Math.random() * 90000).toString();
     }
 
-    delete data.bannedAt;
-    db.ref(`minigameKillers/${player}`).set(data)
-      .then(() => db.ref(`bannedPlayers/${player}`).remove())
-      .then(() => {
-        logAdminAction(currentUser, `Unbanned ${player}`);
-        alert(`${player} has been unbanned`);
+    // Load players and targets for dropdowns
+    function loadPlayers() {
+      db.ref("clanData/members").once('value')
+        .then(snapshot => {
+          const members = snapshot.val() || [];
+          const playerSelects = [
+            document.getElementById("player-select"),
+            document.getElementById("tools-player-select")
+          ];
+
+          playerSelects.forEach(select => {
+            select.innerHTML = '';
+            members.forEach(member => {
+              const opt = document.createElement("option");
+              opt.value = member.username;
+              opt.textContent = member.username;
+              select.appendChild(opt);
+            });
+          });
+        });
+      
+      // Load targets for kill selection
+      db.ref("minigameTargets").once('value')
+        .then(snapshot => {
+          const targets = snapshot.val() || {};
+          const select = document.getElementById("target-select");
+          select.innerHTML = '';
+    
+          Object.keys(targets).forEach(name => {
+            const opt = document.createElement("option");
+            opt.value = name;
+            opt.textContent = name;
+            select.appendChild(opt);
+          });
+        });
+    }
+
+    // Player management functions
+    function removeKills() {
+      const player = document.getElementById("tools-player-select").value;
+      const amount = parseInt(document.getElementById("remove-kills-amount").value);
+      if (!player || isNaN(amount) || amount < 1) {
+        alert("Enter a valid amount and select a player");
+        return;
+      }
+
+      db.ref(`minigameKillers/${player}/kills`).once('value').then(snapshot => {
+        const kills = snapshot.val() || {};
+        let removed = 0;
+
+        for (const target in kills) {
+          if (kills[target] > 0 && removed < amount) {
+            const toRemove = Math.min(amount - removed, kills[target]);
+            kills[target] -= toRemove;
+            if (kills[target] <= 0) delete kills[target];
+            removed += toRemove;
+          }
+        }
+
+        db.ref(`minigameKillers/${player}/kills`).set(kills)
+          .then(() => {
+            logAdminAction(currentUser, `Removed ${removed} kills from ${player}`);
+            alert(`Removed ${removed} kills from ${player}`);
+          });
       });
-  });
-}
+    }
+
+    function disableTimeout() {
+      const player = document.getElementById("tools-player-select").value;
+      if (!player) return;
+
+      db.ref(`minigameKillers/${player}/timeout`).remove()
+        .then(() => {
+          logAdminAction(currentUser, `Disabled timeout for ${player}`);
+          alert(`Timeout disabled for ${player}`);
+        });
+    }
+
+    function unbanPlayer() {
+      const player = document.getElementById("tools-player-select").value;
+      if (!player) return;
+
+      db.ref(`bannedPlayers/${player}`).once('value').then(snapshot => {
+        const data = snapshot.val();
+        if (!data) {
+          alert("Player is not currently banned");
+          return;
+        }
+
+        delete data.bannedAt;
+        db.ref(`minigameKillers/${player}`).set(data)
+          .then(() => db.ref(`bannedPlayers/${player}`).remove())
+          .then(() => {
+            logAdminAction(currentUser, `Unbanned ${player}`);
+            alert(`${player} has been unbanned`);
+          });
+      });
+    }
 
     // Load admin logs (only visible to BD_Ravynthal)
     function loadAdminLogs() {
@@ -570,7 +569,7 @@ function addKill() {
     }
 
     // Helper functions
-    function showError(message) {
+     function showError(message) {
       loginError.textContent = message;
       loginError.classList.remove('hidden');
     }
