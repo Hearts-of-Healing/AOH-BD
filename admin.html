@@ -277,6 +277,7 @@
         adminPanel.classList.remove('hidden');
         
         // Load initial data
+        await syncMinigameKillersWithClanMembers();
         loadPlayers();
         loadAdminLogs();
         
@@ -288,6 +289,38 @@
         showError("Error verifying code. Please try again.");
       }
     }
+
+    async function syncMinigameKillersWithClanMembers() {
+  const membersSnap = await db.ref("clanData/members").once("value");
+  const killersSnap = await db.ref("minigameKillers").once("value");
+
+  const members = membersSnap.val() || [];
+  const killers = killersSnap.val() || {};
+
+  const updates = {};
+
+  members.forEach(member => {
+    const username = member.username;
+    if (!killers[username]) {
+      updates[`minigameKillers/${username}`] = {
+        code: generateCode(), // optional unique code
+        coins: 0,
+        lastDailyReward: "",
+        kills: {}
+      };
+    }
+  });
+
+  if (Object.keys(updates).length > 0) {
+    await db.ref().update(updates);
+    console.log("Synced missing minigameKillers:", updates);
+  }
+}
+
+// Helper function to generate 5-digit code
+function generateCode() {
+  return Math.floor(
+
 
     // Load players for dropdown
       function loadPlayers() {
