@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BD Store</title>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <style>
+    body { background: #111; color: #fff; font-family: sans-serif; padding: 20px; }
+    .item {
+      border: 1px solid #444;
+      background: #1a1a1a;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 6px;
+    }
+    .item h3 { margin: 0 0 5px 0; }
+    .item button {
+      padding: 5px 10px;
+      background: #ff4d4d;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .item button:disabled {
+      background: gray;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <h1>🛒 BD Minigame Store</h1>
+  <div id="store-list"></div>
+
+  <script>
+    // Your Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBDgadn_l0VLJmgCPzziGbwbXYaIfhn0vQ",
+      authDomain: "aoh-bd-clan.firebaseapp.com",
+      databaseURL: "https://aoh-bd-clan-default-rtdb.firebaseio.com",
+      projectId: "aoh-bd-clan"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const currentUser = "BD_Ravynthal"; // Replace with dynamic login
+    const storeList = document.getElementById("store-list");
+
+    async function loadStore() {
+      const [storeSnap, userSnap] = await Promise.all([
+        db.ref("storeItems").once("value"),
+        db.ref(`minigameKillers/${currentUser}`).once("value")
+      ]);
+
+      const storeItems = storeSnap.val() || {};
+      const userData = userSnap.val() || {};
+      const coins = userData.coins || 0;
+      const inventory = userData.inventory || {};
+
+      storeList.innerHTML = "";
+
+      for (const key in storeItems) {
+        const item = storeItems[key];
+        const owned = inventory[key];
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `
+          <h3>${item.name}</h3>
+          <p>${item.description}</p>
+          <p>Price: ${item.price} coins</p>
+          <button ${owned ? "disabled" : ""} onclick="buyItem('${key}', ${item.price})">
+            ${owned ? "Owned" : "Buy"}
+          </button>
+        `;
+        storeList.appendChild(div);
+      }
+    }
+
+    async function buyItem(itemKey, itemPrice) {
+      const userRef = db.ref(`minigameKillers/${currentUser}`);
+      const snapshot = await userRef.once("value");
+      const data = snapshot.val() || {};
+      const coins = data.coins || 0;
+
+      if (coins < itemPrice) {
+        alert("Not enough coins!");
+        return;
+      }
+
+      const updates = {};
+      updates[`coins`] = coins - itemPrice;
+      updates[`inventory/${itemKey}`] = true;
+
+      await userRef.update(updates);
+      alert("Purchase successful!");
+      loadStore();
+    }
+
+    loadStore();
+  </script>
+</body>
+</html>
