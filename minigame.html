@@ -8,6 +8,32 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <style>
+    /* Particle effect */
+@keyframes particle {
+  0% { transform: translate(0, 0); opacity: 1; }
+  100% { transform: translate(var(--tx), var(--ty)); opacity: 0; }
+}
+
+.particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background-color: #ff4d4d;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: particle 0.6s ease-out forwards;
+}
+
+/* Screen shake */
+.shake {
+  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
     .navbar {
     background-color: rgba(26, 26, 46, 0.9);
     backdrop-filter: blur(10px);
@@ -164,6 +190,17 @@
             </button>
           </div>
           <p id="story-result" class="text-green-400 mt-2"></p>
+          <div id="tutorial-overlay" class="fixed inset-0 bg-black bg-opacity-80 z-50 hidden flex items-center justify-center">
+  <div class="bg-gray-800 p-6 rounded-lg max-w-md mx-4">
+    <h2 class="text-2xl font-bold mb-4">Welcome to BD Clan Minigame!</h2>
+    <div id="tutorial-content" class="space-y-4">
+      <!-- Content will be filled by JS -->
+    </div>
+    <button id="tutorial-next" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 py-2 px-4 rounded">
+      Next
+    </button>
+  </div>
+</div>
         </div>
       </div>
     </div>
@@ -216,6 +253,172 @@
         container.appendChild(div);
     }
 }
+    const TUTORIAL_STEPS = [
+  {
+    title: "Welcome!",
+    content: "This minigame lets you attack targets to earn kills and coins.",
+    icon: "👋"
+  },
+  {
+    title: "Select Your Killer",
+    content: "Choose your username from the dropdown to get started.",
+    icon: "🔪"
+  },
+  {
+    title: "Verify Your Code",
+    content: "You'll receive a unique code. Enter it to confirm your identity.",
+    icon: "🔒"
+  },
+  {
+    title: "Attack Targets",
+    content: "Click attack buttons to damage targets. Reduce their health to 0 to get a kill!",
+    icon: "⚔️"
+  },
+  {
+    title: "Earn Rewards",
+    content: "Get coins for kills and daily rewards. Exchange coins for story levels!",
+    icon: "💰"
+  },
+  {
+    title: "Leaderboards",
+    content: "Compete with other players on the leaderboard!",
+    icon: "🏆"
+  }
+];
+
+function showTutorial() {
+  const overlay = document.getElementById("tutorial-overlay");
+  const content = document.getElementById("tutorial-content");
+  const nextBtn = document.getElementById("tutorial-next");
+  
+  let currentStep = 0;
+  
+  function showStep(step) {
+    content.innerHTML = `
+      <div class="text-center">
+        <span class="text-4xl mb-2 inline-block">${TUTORIAL_STEPS[step].icon}</span>
+        <h3 class="text-xl font-bold">${TUTORIAL_STEPS[step].title}</h3>
+        <p>${TUTORIAL_STEPS[step].content}</p>
+      </div>
+      <div class="text-center text-sm text-gray-400">
+        Step ${step + 1} of ${TUTORIAL_STEPS.length}
+      </div>
+    `;
+    
+    nextBtn.textContent = step === TUTORIAL_STEPS.length - 1 ? "Finish" : "Next";
+  }
+  
+  nextBtn.addEventListener("click", () => {
+    currentStep++;
+    if (currentStep >= TUTORIAL_STEPS.length) {
+      // Mark tutorial as completed
+      localStorage.setItem("tutorialCompleted", "true");
+      overlay.classList.add("hidden");
+      return;
+    }
+    showStep(currentStep);
+  });
+  
+  showStep(0);
+  overlay.classList.remove("hidden");
+}
+
+// Check if tutorial should be shown when game loads
+document.addEventListener("DOMContentLoaded", () => {
+  if (!localStorage.getItem("tutorialCompleted")) {
+    setTimeout(showTutorial, 1000); // Show after 1 second
+  }
+});
+    const ACHIEVEMENTS = {
+  first_kill: {
+    title: "First Blood",
+    description: "Get your first kill",
+    icon: "🩸",
+    check: (killer) => killer.totalKills >= 1
+  },
+  veteran: {
+    title: "Veteran",
+    description: "Reach 100 total kills",
+    icon: "🪖",
+    check: (killer) => killer.totalKills >= 100
+  },
+  assassin: {
+    title: "Assassin",
+    description: "Kill each target at least once",
+    icon: "🗡️",
+    check: (killer) => gameState.targets && 
+      Object.keys(gameState.targets).every(t => killer.kills?.[t] > 0)
+  },
+  rich: {
+    title: "Rich",
+    description: "Collect 50 coins",
+    icon: "💰",
+    check: (killer) => killer.coins >= 50
+  }
+};
+
+function checkAchievements() {
+  if (!gameState.killer || !gameState.killerData) return;
+  
+  const container = document.getElementById("achievements");
+  container.innerHTML = '';
+  
+  const killerStats = {
+    ...gameState.killerData,
+    totalKills: gameState.killerData.kills ? 
+      Object.values(gameState.killerData.kills).reduce((a, b) => a + b, 0) : 0
+  };
+  
+  for (const [id, achievement] of Object.entries(ACHIEVEMENTS)) {
+    const achieved = gameState.killerData.achievements?.includes(id) || 
+                    achievement.check(killerStats);
+    
+    const achievementEl = document.createElement("div");
+    achievementEl.className = `p-3 rounded flex items-start ${achieved ? 'bg-green-900' : 'bg-gray-700 opacity-50'}`;
+    achievementEl.innerHTML = `
+      <span class="text-2xl mr-3">${achievement.icon}</span>
+      <div>
+        <h4 class="font-bold">${achievement.title}</h4>
+        <p class="text-sm">${achievement.description}</p>
+        ${achieved ? '<p class="text-xs text-green-300 mt-1">Unlocked!</p>' : ''}
+      </div>
+    `;
+    container.appendChild(achievementEl);
+    
+    // Award achievement if not already awarded
+    if (achievement.check(killerStats) && 
+        !gameState.killerData.achievements?.includes(id)) {
+      awardAchievement(id);
+    }
+  }
+}
+
+function awardAchievement(id) {
+  const achievement = ACHIEVEMENTS[id];
+  if (!achievement) return;
+  
+  // Show notification
+  const notification = document.createElement("div");
+  notification.className = "fixed bottom-4 right-4 bg-green-800 text-white px-4 py-2 rounded-lg shadow-lg animate-bounce";
+  notification.innerHTML = `
+    <span class="text-2xl mr-2">${achievement.icon}</span>
+    <div>
+      <h4 class="font-bold">Achievement Unlocked!</h4>
+      <p>${achievement.title}: ${achievement.description}</p>
+    </div>
+  `;
+  document.body.appendChild(notification);
+  setTimeout(() => notification.remove(), 3000);
+  
+  // Save to database
+  const achievements = [...(gameState.killerData.achievements || []), id];
+  db.ref(`minigameKillers/${gameState.killer}/achievements`).set(achievements)
+    .then(() => {
+      gameState.killerData.achievements = achievements;
+    });
+}
+
+// Call checkAchievements() in your loadGameData() function
 
     // Load clan members for killer selection
     function loadMembers() {
@@ -448,6 +651,55 @@
       html += "</ul>";
       container.innerHTML = html;
     }
+    function updateLeaderboard() {
+  db.ref("minigameKillers").once("value").then(snap => {
+    const killers = snap.val() || {};
+    const leaderboardData = [];
+    
+    for (const [name, data] of Object.entries(killers)) {
+      const totalKills = data.kills ? Object.values(data.kills).reduce((a,b) => a + b, 0) : 0;
+      leaderboardData.push({ name, kills: totalKills, coins: data.coins || 0 });
+    }
+    
+    // Sort by kills (descending)
+    leaderboardData.sort((a, b) => b.kills - a.kills);
+    
+    const container = document.getElementById("leaderboard");
+    container.innerHTML = '';
+    
+    leaderboardData.slice(0, 10).forEach((killer, index) => {
+      const entry = document.createElement("div");
+      entry.className = "flex justify-between items-center p-2 bg-gray-700 rounded";
+      entry.innerHTML = `
+        <div class="flex items-center">
+          <span class="w-6 text-center font-bold">${index + 1}.</span>
+          <span class="mx-2">${killer.name}</span>
+        </div>
+        <span class="text-yellow-400">${killer.kills} kills</span>
+      `;
+      container.appendChild(entry);
+    });
+    
+    // Add current player highlight if not in top 10
+    if (gameState.killer && !leaderboardData.slice(0, 10).some(k => k.name === gameState.killer)) {
+      const currentPlayer = leaderboardData.find(k => k.name === gameState.killer);
+      if (currentPlayer) {
+        const entry = document.createElement("div");
+        entry.className = "flex justify-between items-center p-2 bg-blue-900 rounded mt-2";
+        entry.innerHTML = `
+          <div class="flex items-center">
+            <span class="w-6 text-center font-bold">${leaderboardData.findIndex(k => k.name === gameState.killer) + 1}.</span>
+            <span class="mx-2">${currentPlayer.name} (You)</span>
+          </div>
+          <span class="text-yellow-400">${currentPlayer.kills} kills</span>
+        `;
+        container.appendChild(entry);
+      }
+    }
+  });
+}
+
+// Call this in your loadGameData() function
 
     // Attack a target
 function attack(targetName) {
@@ -455,6 +707,16 @@ function attack(targetName) {
     alert("Please select and verify your killer first!");
     return;
   }
+
+  // Screen shake effect
+  document.body.classList.add('shake');
+  setTimeout(() => {
+    document.body.classList.remove('shake');
+  }, 500);
+
+  // Particle effect
+  createParticles(targetName);
+
 
   const target = gameState.targets[targetName];
   if (!target) return;
@@ -495,6 +757,34 @@ function attack(targetName) {
   db.ref("minigameTargets").update({
     [targetName]: { health: target.health, maxHealth: target.maxHealth }
   });
+}
+  function createParticles(targetName) {
+  const targetElement = document.querySelector(`#targets div:has(h3:contains("${targetName}"))`);
+  if (!targetElement) return;
+
+  for (let i = 0; i < 15; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'particle';
+    
+    // Random direction and distance
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 20 + Math.random() * 30;
+    particle.style.setProperty('--tx', `${Math.cos(angle) * distance}px`);
+    particle.style.setProperty('--ty', `${Math.sin(angle) * distance}px`);
+    
+    // Random position around the attack button
+    const button = targetElement.querySelector('button');
+    const rect = button.getBoundingClientRect();
+    particle.style.left = `${rect.left + rect.width/2 + (Math.random() * 20 - 10)}px`;
+    particle.style.top = `${rect.top + rect.height/2 + (Math.random() * 20 - 10)}px`;
+    
+    document.body.appendChild(particle);
+    
+    // Remove particle after animation
+    setTimeout(() => {
+      particle.remove();
+    }, 600);
+  }
 }
 
     // Record a kill
