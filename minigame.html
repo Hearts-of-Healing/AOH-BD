@@ -1,63 +1,408 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>BD Clan Clicker Minigame</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BD Clan Battle Minigame</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(to right, #111827, #1f2937);
-    }
     .health-bar {
       height: 20px;
       background-color: #4b5563;
       border-radius: 10px;
       overflow: hidden;
+      margin-top: 8px;
     }
     .health-fill {
       height: 100%;
       background-color: #10b981;
       transition: width 0.3s ease;
     }
-    .coin {
-      color: gold;
-      text-shadow: 0 0 5px rgba(255, 215, 0, 0.7);
-    }
-    .navbar {
-      background-color: rgba(26, 26, 46, 0.9);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid rgba(255, 77, 77, 0.2);
-    }
-    .nav-link {
-      position: relative;
-      padding: 0.5rem 1rem;
-      transition: all 0.3s ease;
-    }
-    .nav-link:hover {
-      color: #ff4d4d;
-    }
-    .nav-link::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 0;
-      height: 2px;
-      background-color: #ff4d4d;
-      transition: width 0.3s ease;
-    }
-    .nav-link:hover::after {
-      width: 100%;
-    }
   </style>
 </head>
-<body class="text-white min-h-screen overflow-x-hidden">
-<!-- Add your updated and working game HTML and scripts here -->
+<body class="bg-gray-900 text-white font-sans p-4">
+  <h1 class="text-3xl font-bold text-center mb-6">BD Clan Minigame</h1>
+  <div class="max-w-4xl mx-auto">
+    <div class="mb-4">
+      <label for="killer-select" class="block mb-2">Select Killer:</label>
+      <select id="killer-select" class="text-black p-2 rounded w-full"></select>
+      <button onclick="verifyCode()" class="mt-2 p-2 bg-blue-600 hover:bg-blue-700 rounded w-full">Verify Code</button>
+    </div>
+    <div id="code-input-area" class="mb-4 hidden">
+      <input id="code-input" type="text" placeholder="Enter Code" class="text-black p-2 rounded w-full" maxlength="5"/>
+      <button onclick="confirmKiller()" class="mt-2 p-2 bg-green-600 hover:bg-green-700 rounded w-full">Confirm</button>
+      <p id="code-error" class="text-red-500 mt-2 hidden"></p>
+    </div>
+    <div id="game-area" class="hidden">
+      <h2 class="text-xl font-bold mb-2">Targets</h2>
+      <div id="targets" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+      <div class="mt-6 bg-gray-800 p-4 rounded">
+        <h3 class="text-xl font-bold mb-2">Stats</h3>
+        <p class="text-lg">💰 Coins: <span id="coin-count">0</span></p>
+        <p>🔪 Total Kills: <span id="total-kills">0</span></p>
+        <div id="killer-stats" class="mt-2"></div>
+        
+        <div class="mt-4">
+          <button onclick="grantDailyReward()" class="bg-yellow-400 hover:bg-yellow-500 text-black px-4 py-2 rounded w-full">
+            🎁 Claim Daily Reward (5 Coins)
+          </button>
+        </div>
+        
+        <div class="mt-4">
+          <div class="flex items-center">
+            <input type="number" id="story-coin-input" placeholder="Coins to exchange" 
+                   class="text-black p-2 rounded w-full" min="1" />
+            <button onclick="exchangeCoinsForLevels()" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded ml-2 whitespace-nowrap">
+              📘 Exchange
+            </button>
+          </div>
+          <p id="story-result" class="text-green-400 mt-2"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Firebase configuration - REPLACE WITH YOUR ACTUAL CONFIG
+    const firebaseConfig = {
+      apiKey: "AIzaSyBDgadn_l0VLJmgCPzziGbwbXYaIfhn0vQ",
+      authDomain: "aoh-bd-clan.firebaseapp.com",
+      databaseURL: "https://aoh-bd-clan-default-rtdb.firebaseio.com",
+      projectId: "aoh-bd-clan",
+      storageBucket: "aoh-bd-clan.appspot.com",
+      messagingSenderId: "824398865971",
+      appId: "1:824398865971:web:139890878f47e251ad6546"
+    };
+    
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let gameState = {
+      killer: null,
+      killerData: {},
+      targets: {},
+      stats: { totalKills: 0, killDetails: {} }
+    };
+
+    // Load clan members for killer selection
+    function loadMembers() {
+      db.ref("clanData/members").once("value").then(snap => {
+        const members = snap.val() || [];
+        const select = document.getElementById("killer-select");
+        select.innerHTML = '';
+        
+        members.forEach(member => {
+          const opt = document.createElement("option");
+          opt.value = member.username;
+          opt.textContent = member.username;
+          select.appendChild(opt);
+        });
+        
+        // Initialize game data if this is first run
+        initializeGameData();
+      }).catch(error => {
+        console.error("Error loading members:", error);
+      });
+    }
+
+    // Initialize game data structures if they don't exist
+    function initializeGameData() {
+      const initData = {
+        minigameTargets: {
+          "Ban": { health: 100, maxHealth: 100 },
+          "Kyle": { health: 100, maxHealth: 100 },
+          "Levi": { health: 100, maxHealth: 100 },
+          "Zen": { health: 100, maxHealth: 100 }
+        },
+        minigameStats: {
+          totalKills: 0,
+          killDetails: {}
+        }
+      };
+
+      // Check and initialize each node
+      Promise.all([
+        checkAndInitNode('minigameTargets', initData.minigameTargets),
+        checkAndInitNode('minigameStats', initData.minigameStats)
+      ]).then(() => {
+        console.log("Game data initialized");
+      });
+    }
+
+    function checkAndInitNode(path, defaultData) {
+      return db.ref(path).once('value').then(snap => {
+        if (!snap.exists()) {
+          return db.ref(path).set(defaultData);
+        }
+      });
+    }
+
+    // Verify code button handler
+    function verifyCode() {
+      const name = document.getElementById("killer-select").value;
+      if (!name) return alert("Select a killer first.");
+      
+      gameState.killer = name;
+      document.getElementById("code-input-area").classList.remove("hidden");
+      document.getElementById("code-input").focus();
+    }
+
+    // Confirm killer with code
+    function confirmKiller() {
+      const code = document.getElementById("code-input").value.trim();
+      const errorElement = document.getElementById("code-error");
+      
+      if (!code) {
+        errorElement.textContent = "Enter your code";
+        errorElement.classList.remove("hidden");
+        return;
+      }
+
+      db.ref('minigameKillers/' + gameState.killer).once('value').then(snap => {
+        const killer = snap.val();
+        
+        if (!killer) {
+          // New player - generate code and initialize
+          const newKiller = {
+            code: generateMemberCode(gameState.killer),
+            coins: 0,
+            kills: {},
+            lastDailyReward: null
+          };
+          
+          return db.ref('minigameKillers/' + gameState.killer).set(newKiller)
+            .then(() => {
+              gameState.killerData = newKiller;
+              showGameArea();
+            });
+        }
+        
+        if (killer.code === code) {
+          gameState.killerData = killer;
+          showGameArea();
+        } else {
+          errorElement.textContent = "Wrong code!";
+          errorElement.classList.remove("hidden");
+        }
+      }).catch(error => {
+        console.error("Error verifying killer:", error);
+        errorElement.textContent = "Error verifying code";
+        errorElement.classList.remove("hidden");
+      });
+    }
+
+    // Generate a 5-digit member code
+    function generateMemberCode(username) {
+      let hash = 0;
+      for (let i = 0; i < username.length; i++) {
+        hash = (hash << 5) - hash + username.charCodeAt(i);
+      }
+      return (10000 + (Math.abs(hash) % 90000).toString();
+    }
+
+    // Show the game area after successful verification
+    function showGameArea() {
+      document.getElementById("code-input-area").classList.add("hidden");
+      document.getElementById("game-area").classList.remove("hidden");
+      document.getElementById("coin-count").textContent = gameState.killerData.coins || 0;
+      loadGameData();
+    }
+
+    // Load targets and stats
+    function loadGameData() {
+      db.ref("minigameTargets").on("value", snap => {
+        gameState.targets = snap.val() || {};
+        renderTargets();
+      });
+      
+      db.ref("minigameStats").on("value", snap => {
+        gameState.stats = snap.val() || { totalKills: 0, killDetails: {} };
+        document.getElementById("total-kills").textContent = gameState.stats.totalKills;
+        renderKillerStats();
+      });
+    }
+
+    // Render targets with health bars
+    function renderTargets() {
+      const container = document.getElementById("targets");
+      container.innerHTML = "";
+      
+      for (const name in gameState.targets) {
+        const target = gameState.targets[name];
+        const healthPercent = (target.health / target.maxHealth) * 100;
+        
+        const div = document.createElement("div");
+        div.className = "p-4 bg-gray-800 rounded-lg";
+        div.innerHTML = `
+          <h3 class="text-lg font-bold">${name}</h3>
+          <p>Health: ${target.health}/${target.maxHealth}</p>
+          <div class="health-bar">
+            <div class="health-fill" style="width: ${healthPercent}%"></div>
+          </div>
+          <button onclick="attack('${name}')" 
+                  class="mt-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded w-full">
+            Attack (-10 HP)
+          </button>
+        `;
+        container.appendChild(div);
+      }
+    }
+
+    // Render killer-specific stats
+    function renderKillerStats() {
+      const container = document.getElementById("killer-stats");
+      if (!gameState.killerData.kills) {
+        container.innerHTML = "<p>No kills yet!</p>";
+        return;
+      }
+      
+      let html = "<p class='font-semibold'>Your Kills:</p><ul class='list-disc pl-5 mt-1'>";
+      for (const target in gameState.killerData.kills) {
+        const count = gameState.killerData.kills[target];
+        html += `<li>${target}: ${count} kill${count !== 1 ? 's' : ''}</li>`;
+      }
+      html += "</ul>";
+      container.innerHTML = html;
+    }
+
+    // Attack a target
+    function attack(targetName) {
+      if (!gameState.killer) return alert("Not verified!");
+      
+      const target = gameState.targets[targetName];
+      if (!target) return;
+      
+      target.health -= 10;
+      
+      // Update health display immediately
+      const healthElements = document.querySelectorAll(`#targets div:has(h3:contains("${targetName}")) p`);
+      if (healthElements.length > 0) {
+        healthElements[0].textContent = `Health: ${target.health}/${target.maxHealth}`;
+      }
+      
+      // Update health bar
+      const healthPercent = (target.health / target.maxHealth) * 100;
+      const healthBar = document.querySelector(`#targets div:has(h3:contains("${targetName}")) .health-fill`);
+      if (healthBar) {
+        healthBar.style.width = `${healthPercent}%`;
+      }
+      
+      if (target.health <= 0) {
+        // Target defeated
+        target.health = target.maxHealth;
+        recordKill(targetName);
+      }
+      
+      // Save target health
+      db.ref("minigameTargets").update({ [targetName]: target });
+    }
+
+    // Record a kill
+    function recordKill(targetName) {
+      gameState.stats.totalKills++;
+      gameState.stats.killDetails = gameState.stats.killDetails || {};
+      
+      // Update killer stats
+      gameState.killerData.kills = gameState.killerData.kills || {};
+      gameState.killerData.kills[targetName] = (gameState.killerData.kills[targetName] || 0) + 1;
+      
+      // Update global kill details
+      const killKey = `${gameState.killer}-${targetName}`;
+      gameState.stats.killDetails[killKey] = (gameState.stats.killDetails[killKey] || 0) + 1;
+      
+      // Check for coin reward (every 1000 kills)
+      if (gameState.killerData.kills[targetName] % 1000 === 0) {
+        gameState.killerData.coins = (gameState.killerData.coins || 0) + 1;
+        showCoinNotification(targetName);
+      }
+      
+      // Save all updates
+      Promise.all([
+        db.ref("minigameStats").set(gameState.stats),
+        db.ref("minigameKillers/" + gameState.killer).set(gameState.killerData)
+      ]).then(() => {
+        document.getElementById("coin-count").textContent = gameState.killerData.coins;
+        document.getElementById("total-kills").textContent = gameState.stats.totalKills;
+        renderKillerStats();
+      });
+    }
+
+    // Show coin notification
+    function showCoinNotification(targetName) {
+      const notification = document.createElement("div");
+      notification.className = "fixed top-4 right-4 bg-yellow-600 text-white px-4 py-2 rounded-lg shadow-lg animate-bounce";
+      notification.innerHTML = `
+        🎉 +1 Coin for 1000 ${targetName} kills!
+      `;
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        notification.remove();
+      }, 3000);
+    }
+
+    // Grant daily reward
+    function grantDailyReward() {
+      if (!gameState.killer) return alert("Verify first.");
+      
+      const today = new Date().toISOString().split('T')[0];
+      if (gameState.killerData.lastDailyReward === today) {
+        alert("You already claimed your daily reward today.");
+        return;
+      }
+      
+      gameState.killerData.lastDailyReward = today;
+      gameState.killerData.coins = (gameState.killerData.coins || 0) + 5;
+      
+      db.ref("minigameKillers/" + gameState.killer).set(gameState.killerData)
+        .then(() => {
+          document.getElementById("coin-count").textContent = gameState.killerData.coins;
+          alert("🎉 Daily reward claimed! +5 Coins");
+        })
+        .catch(error => {
+          console.error("Error granting daily reward:", error);
+          alert("Failed to claim reward. Try again.");
+        });
+    }
+
+    // Exchange coins for levels
+    function exchangeCoinsForLevels() {
+      if (!gameState.killer) return alert("Verify first.");
+      
+      const input = document.getElementById("story-coin-input");
+      const coins = parseInt(input.value);
+      const result = document.getElementById("story-result");
+      
+      if (isNaN(coins) || coins < 1) {
+        result.textContent = "Enter a valid number of coins";
+        return;
+      }
+      
+      if (coins > gameState.killerData.coins) {
+        result.textContent = "Not enough coins!";
+        return;
+      }
+      
+      gameState.killerData.coins -= coins;
+      const levelsGained = coins * 10; // 10 levels per coin
+      
+      db.ref("minigameKillers/" + gameState.killer).set(gameState.killerData)
+        .then(() => {
+          document.getElementById("coin-count").textContent = gameState.killerData.coins;
+          result.textContent = `📚 Gained ${levelsGained} story levels!`;
+          input.value = "";
+        })
+        .catch(error => {
+          console.error("Error exchanging coins:", error);
+          result.textContent = "Error processing exchange";
+        });
+    }
+
+    // Initialize the game when page loads
+    document.addEventListener("DOMContentLoaded", loadMembers);
+  </script>
 </body>
 </html>
