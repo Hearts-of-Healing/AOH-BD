@@ -113,12 +113,32 @@
       </div>
 
       <div class="control-section">
+        <h2>🛠️ Player Tools</h2>
+
+        <label for="tools-player-select">Select Player:</label>
+        <select id="tools-player-select"></select><br />
+
+      <div>
+        <label for="remove-kills-amount">Remove Kills:</label>
+        <input type="number" id="remove-kills-amount" placeholder="Amount to remove" />
+        <button onclick="removeKills()">➖ Remove Kills</button>
+      </div>
+
+      <div class="mt-2">
+        <button onclick="disableTimeout()">🛑 Disable Timeout</button>
+        <button onclick="unbanPlayer()">🔓 Unban Player</button>
+      </div>
+    </div>
+
+      <div class="control-section">
         <h2>👥 Player Management</h2>
         <label for="player-select">Select Player:</label>
         <select id="player-select"></select><br />
         <button id="ban-btn">🚫 Ban</button>
         <button id="timeout-btn">⏳ Timeout 1hr</button>
         <button id="kill-btn">💀 Add Kill</button>
+        <label for="target-select">Select Target:</label>
+        <select id="target-select"></select><br />
       </div>
 
       <div class="control-section">
@@ -270,36 +290,103 @@
     }
 
     // Load players for dropdown
-    function loadPlayers() {
-  // Load players
+      function loadPlayers() {
   db.ref("clanData/members").once('value')
     .then(snapshot => {
       const members = snapshot.val() || [];
-      const select = document.getElementById("player-select");
-      select.innerHTML = '';
-      
+      const select1 = document.getElementById("player-select");
+      const select2 = document.getElementById("tools-player-select");
+      select1.innerHTML = '';
+      select2.innerHTML = '';
+
       members.forEach(member => {
-        const opt = document.createElement("option");
-        opt.value = member.username;
-        opt.textContent = member.username;
-        select.appendChild(opt);
+        const opt1 = document.createElement("option");
+        opt1.value = member.username;
+        opt1.textContent = member.username;
+        select1.appendChild(opt1);
+
+        const opt2 = document.createElement("option");
+        opt2.value = member.username;
+        opt2.textContent = member.username;
+        select2.appendChild(opt2);
       });
     });
-
-  // Load targets for kill selection
-  db.ref("minigameTargets").once('value')
-    .then(snapshot => {
-      const targets = snapshot.val() || {};
-      const select = document.getElementById("target-select");
-      select.innerHTML = '';
-
-      Object.keys(targets).forEach(name => {
-        const opt = document.createElement("option");
-        opt.value = name;
-        opt.textContent = name;
-        select.appendChild(opt);
+  
+    // Load targets for kill selection
+    db.ref("minigameTargets").once('value')
+      .then(snapshot => {
+        const targets = snapshot.val() || {};
+        const select = document.getElementById("target-select");
+        select.innerHTML = '';
+  
+        Object.keys(targets).forEach(name => {
+          const opt = document.createElement("option");
+          opt.value = name;
+          opt.textContent = name;
+          select.appendChild(opt);
+        });
       });
+  }
+
+    function removeKills() {
+  const player = document.getElementById("tools-player-select").value;
+  const amount = parseInt(document.getElementById("remove-kills-amount").value);
+  if (!player || isNaN(amount) || amount < 1) {
+    alert("Enter a valid amount and select a player");
+    return;
+  }
+
+  db.ref(`minigameKillers/${player}/kills`).once('value').then(snapshot => {
+    const kills = snapshot.val() || {};
+    let removed = 0;
+
+    for (const target in kills) {
+      if (kills[target] > 0 && removed < amount) {
+        const toRemove = Math.min(amount - removed, kills[target]);
+        kills[target] -= toRemove;
+        if (kills[target] <= 0) delete kills[target];
+        removed += toRemove;
+      }
+    }
+
+    db.ref(`minigameKillers/${player}/kills`).set(kills)
+      .then(() => {
+        logAdminAction(currentUser, `Removed ${removed} kills from ${player}`);
+        alert(`Removed ${removed} kills from ${player}`);
+      });
+  });
+}
+
+function disableTimeout() {
+  const player = document.getElementById("tools-player-select").value;
+  if (!player) return;
+
+  db.ref(`minigameKillers/${player}/timeout`).remove()
+    .then(() => {
+      logAdminAction(currentUser, `Disabled timeout for ${player}`);
+      alert(`Timeout disabled for ${player}`);
     });
+}
+
+function unbanPlayer() {
+  const player = document.getElementById("tools-player-select").value;
+  if (!player) return;
+
+  db.ref(`bannedPlayers/${player}`).once('value').then(snapshot => {
+    const data = snapshot.val();
+    if (!data) {
+      alert("Player is not currently banned");
+      return;
+    }
+
+    delete data.bannedAt;
+    db.ref(`minigameKillers/${player}`).set(data)
+      .then(() => db.ref(`bannedPlayers/${player}`).remove())
+      .then(() => {
+        logAdminAction(currentUser, `Unbanned ${player}`);
+        alert(`${player} has been unbanned`);
+      });
+  });
 }
 
     // Load admin logs (only visible to BD_Ravynthal)
