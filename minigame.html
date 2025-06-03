@@ -269,36 +269,52 @@
     }
 
     // Attack a target
-    function attack(targetName) {
-      if (!gameState.killer) return alert("Not verified!");
-      
-      const target = gameState.targets[targetName];
-      if (!target) return;
-      
-      target.health -= 10;
-      
-      // Update health display immediately
-      const healthElements = document.querySelectorAll(`#targets div:has(h3:contains("${targetName}")) p`);
-      if (healthElements.length > 0) {
-        healthElements[0].textContent = `Health: ${target.health}/${target.maxHealth}`;
-      }
-      
-      // Update health bar
-      const healthPercent = (target.health / target.maxHealth) * 100;
-      const healthBar = document.querySelector(`#targets div:has(h3:contains("${targetName}")) .health-fill`);
-      if (healthBar) {
-        healthBar.style.width = `${healthPercent}%`;
-      }
-      
-      if (target.health <= 0) {
-        // Target defeated
-        target.health = target.maxHealth;
-        recordKill(targetName);
-      }
-      
-      // Save target health
-      db.ref("minigameTargets").update({ [targetName]: target });
+function attack(targetName) {
+  if (!gameState.killer) {
+    alert("Please select and verify your killer first!");
+    return;
+  }
+
+  const target = gameState.targets[targetName];
+  if (!target) return;
+
+  // Reduce health
+  target.health -= 10;
+
+  // Find the target's DOM element
+  const targetElements = document.querySelectorAll('#targets > div');
+  let targetElement;
+  
+  // Find the specific target div by checking its h3 content
+  targetElements.forEach(div => {
+    if (div.querySelector('h3').textContent === targetName) {
+      targetElement = div;
     }
+  });
+
+  if (targetElement) {
+    // Update health text
+    const healthText = targetElement.querySelector('p > span');
+    if (healthText) healthText.textContent = target.health;
+    
+    // Update health bar
+    const healthBar = targetElement.querySelector('.health-fill');
+    if (healthBar) {
+      healthBar.style.width = `${(target.health / target.maxHealth) * 100}%`;
+    }
+  }
+
+  // Check for kill
+  if (target.health <= 0) {
+    target.health = target.maxHealth;
+    recordKill(targetName);
+  }
+
+  // Update Firebase
+  db.ref("minigameTargets").update({
+    [targetName]: { health: target.health, maxHealth: target.maxHealth }
+  });
+}
 
     // Record a kill
     function recordKill(targetName) {
