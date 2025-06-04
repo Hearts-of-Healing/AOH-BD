@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>BD Store - Improved UI</title>
+  <title>BD Store - Improved UI with Logs + Gifting + Stats</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -17,9 +17,11 @@
     .equipped { color: #00ffff; font-weight: bold; }
     .expired { color: red; font-weight: bold; }
     button { background: #ff4d4d; color: white; padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer; margin-left: 5px; }
-    input { padding: 8px; margin: 5px; border-radius: 5px; border: 1px solid #444; background: #222; color: white; }
+    input, select { padding: 8px; margin: 5px; border-radius: 5px; border: 1px solid #444; background: #222; color: white; }
     .section-title { color: #ffcc00; font-size: 1.3em; margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 5px; }
     .hidden { display: none; }
+    .log-entry { padding: 5px 0; border-bottom: 1px solid #333; font-size: 0.95em; }
+    .toggle-btn { background: #444; color: white; margin: 10px 0; }
   </style>
 </head>
 <body>
@@ -46,142 +48,168 @@
         <div class="section-title">Achievements</div>
         <div id="achievement-list"></div>
       </div>
+      <div class="section">
+        <div class="section-title">Gift Item</div>
+        <select id="gift-player"></select>
+        <select id="gift-item"></select>
+        <button onclick="giftItem()">Gift</button>
+        <div id="gift-status"></div>
+      </div>
       <div class="section hidden" id="admin-panel">
-        <div class="section-title">Admin Controls</div>
-        <input id="item-name" placeholder="Item Name">
-        <input id="item-price" placeholder="Price" type="number">
-        <input id="item-description" placeholder="Description">
-        <button onclick="addItem()">Add Item</button>
+        <button class="toggle-btn" onclick="toggleAdminTools()">📦 Toggle Admin Tools</button>
+        <div id="admin-tools" class="hidden">
+          <div class="section-title">Admin Controls</div>
+          <input id="item-name" placeholder="Item Name">
+          <input id="item-price" placeholder="Price" type="number">
+          <input id="item-description" placeholder="Description">
+          <input id="item-expiry" placeholder="ExpiresAt (yyyy-mm-dd or leave blank)">
+          <button onclick="addItem()">Add Item</button>
+          <div class="section" style="margin-top:20px;">
+            <div class="section-title">Purchase Logs</div>
+            <div id="log-list">Loading...</div>
+          </div>
+          <div class="section" style="margin-top:20px;">
+            <div class="section-title">Store Stats</div>
+            <div id="store-stats">Loading...</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyBDgadn_l0VLJmgCPzziGbwbXYaIfhn0vQ",
-      authDomain: "aoh-bd-clan.firebaseapp.com",
-      databaseURL: "https://aoh-bd-clan-default-rtdb.firebaseio.com",
-      projectId: "aoh-bd-clan",
-      storageBucket: "aoh-bd-clan.firebasestorage.app",
-      messagingSenderId: "824398865971",
-      appId: "1:824398865971 :web :139890877f47e251ad6546",
-      measurementId: "G-4V15NCH2RH"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+<script>
+  const firebaseConfig = { apiKey: "AIzaSyBDgadn_l0VLJmgCPzziGbwbXYaIfhn0vQ", authDomain: "aoh-bd-clan.firebaseapp.com", databaseURL: "https://aoh-bd-clan-default-rtdb.firebaseio.com", projectId: "aoh-bd-clan" };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  let currentUser = null;
+  let userData = {};
+  const adminUsers = ["BD_Ravynthal", "Kyle", "Ban", "Voidsect"];
 
-    let currentUser = null;
-    let userData = {};
-    const adminUsers = ["BD_Ravynthal", "Kyle", "Ban", "Voidsect"];
+  function toggleAdminTools() {
+    document.getElementById("admin-tools").classList.toggle("hidden");
+  }
 
-    async function login() {
-      const code = document.getElementById("code-input").value.trim();
-      const snap = await db.ref("minigameKillers").once("value");
-      const all = snap.val();
-      for (const user in all) {
-        if (all[user].code === code) {
-          currentUser = user;
-          userData = all[user];
-          document.getElementById("user-display").textContent = currentUser;
-          document.getElementById("login-section").classList.add("hidden");
-          document.getElementById("store-content").classList.remove("hidden");
-          if (adminUsers.includes(currentUser)) {
-            document.getElementById("admin-panel").classList.remove("hidden");
-          }
-          loadStore();
-          return;
+  async function login() {
+    const code = document.getElementById("code-input").value.trim();
+    const snap = await db.ref("minigameKillers").once("value");
+    const all = snap.val();
+    const giftPlayerSelect = document.getElementById("gift-player");
+    giftPlayerSelect.innerHTML = "";
+    for (const user in all) {
+      if (all[user].code === code) {
+        currentUser = user;
+        userData = all[user];
+        document.getElementById("user-display").textContent = currentUser;
+        document.getElementById("login-section").classList.add("hidden");
+        document.getElementById("store-content").classList.remove("hidden");
+        if (adminUsers.includes(currentUser)) {
+          document.getElementById("admin-panel").classList.remove("hidden");
+          loadLogs();
+          loadStats();
         }
       }
-      document.getElementById("login-status").textContent = "Invalid code";
+      const opt = document.createElement("option");
+      opt.value = user; opt.text = user;
+      giftPlayerSelect.appendChild(opt);
     }
+    loadStore();
+  }
 
-    async function loadStore() {
-      const [storeSnap, userSnap] = await Promise.all([
-        db.ref("storeItems").once("value"),
-        db.ref("minigameKillers/" + currentUser).once("value")
-      ]);
-      const items = storeSnap.val() || {};
-      const user = userSnap.val() || {};
-      const inv = user.inventory || {};
-      const eq = user.equipped || {};
-      const ach = user.achievements || {};
-      document.getElementById("coin-display").textContent = user.coins || 0;
-
-      const storeList = document.getElementById("store-list");
-      storeList.innerHTML = "";
-      for (const key in items) {
-        const item = items[key];
-        const owned = inv[key];
-        const equipped = eq[key];
-        const isExpired = item.expiresAt && new Date(item.expiresAt) < new Date();
-        storeList.innerHTML += `
-          <div class="item">
-            <b>${item.name}</b> - ${item.description} (${item.price} coins)
-            ${isExpired ? '<span class="expired">[Expired]</span>' :
-              owned ? '<span class="owned">[Owned]</span>' :
-              `<button onclick="buyItem('${key}', ${item.price})">Buy</button>`}
-            ${owned && !isExpired ? 
-              (equipped ? '<span class="equipped">[Equipped]</span>' :
-              `<button onclick="equipItem('${key}')">Equip</button>`) : ''}
-          </div>
-        `;
-      }
-
-      const inventoryList = document.getElementById("inventory-list");
-      inventoryList.innerHTML = Object.keys(inv).length === 0 ? "None" :
-        Object.keys(inv).map(k => `✔ ${k}`).join("<br>");
-
-      const achList = document.getElementById("achievement-list");
-      achList.innerHTML = Object.keys(ach).length === 0 ? "No achievements yet." :
-        Object.keys(ach).map(k => `🏆 ${k}`).join("<br>");
+  async function loadStore() {
+    const [storeSnap, userSnap] = await Promise.all([
+      db.ref("storeItems").once("value"),
+      db.ref("minigameKillers/" + currentUser).once("value")
+    ]);
+    const items = storeSnap.val() || {};
+    const user = userSnap.val() || {};
+    const inv = user.inventory || {};
+    const eq = user.equipped || {};
+    const ach = user.achievements || {};
+    document.getElementById("coin-display").textContent = user.coins || 0;
+    const storeList = document.getElementById("store-list");
+    const giftItemSelect = document.getElementById("gift-item");
+    storeList.innerHTML = "";
+    giftItemSelect.innerHTML = "";
+    for (const key in items) {
+      const item = items[key];
+      const owned = inv[key];
+      const equipped = eq[key];
+      const isExpired = item.expiresAt && new Date(item.expiresAt) < new Date();
+      storeList.innerHTML += `
+        <div class="item">
+          <b>${item.name}</b> - ${item.description} (${item.price} coins)
+          ${isExpired ? '<span class="expired">[Expired]</span>' :
+            owned ? '<span class="owned">[Owned]</span>' :
+            `<button onclick="buyItem('${key}', ${item.price})">Buy</button>`}
+          ${owned && !isExpired ?
+            (equipped ? '<span class="equipped">[Equipped]</span>' :
+            `<button onclick="equipItem('${key}')">Equip</button>`) : ''}
+        </div>
+      `;
+      const giftOpt = document.createElement("option");
+      giftOpt.value = key; giftOpt.text = item.name;
+      giftItemSelect.appendChild(giftOpt);
     }
+    document.getElementById("inventory-list").innerHTML = Object.keys(inv).length === 0 ? "None" : Object.keys(inv).map(k => `✔ ${k}`).join("<br>");
+    document.getElementById("achievement-list").innerHTML = Object.keys(ach).length === 0 ? "No achievements yet." : Object.keys(ach).map(k => `🏆 ${k}`).join("<br>");
+  }
 
-    async function buyItem(key, price) {
-      const ref = db.ref("minigameKillers/" + currentUser);
-      const snap = await ref.once("value");
-      const data = snap.val();
-      if ((data.coins || 0) < price) return alert("Not enough coins");
-      if (data.inventory && data.inventory[key]) return alert("Already owned");
+  async function buyItem(key, price) {
+    const ref = db.ref("minigameKillers/" + currentUser);
+    const snap = await ref.once("value");
+    const data = snap.val();
+    if ((data.coins || 0) < price) return alert("Not enough coins");
+    if (data.inventory && data.inventory[key]) return alert("Already owned");
+    await ref.update({ coins: (data.coins || 0) - price, [`inventory/${key}`]: true });
+    await db.ref("purchaseLogs").push({ user: currentUser, item: key, price, time: Date.now() });
+    if (price >= 500) await ref.child("achievements/store_spender").set(true);
+    loadStore();
+  }
 
-      const updates = {};
-      updates["coins"] = (data.coins || 0) - price;
-      updates["inventory/" + key] = true;
+  async function equipItem(key) {
+    await db.ref(`minigameKillers/${currentUser}/equipped`).update({ [key]: true });
+    loadStore();
+  }
 
-      await ref.update(updates);
-      db.ref("purchaseLogs").push({
-        user: currentUser, item: key, price, time: Date.now()
-      });
-      db.ref("adminLogs").push({
-        username: currentUser, action: `Purchased ${key}`, time: new Date().toISOString()
-      });
+  async function giftItem() {
+    const to = document.getElementById("gift-player").value;
+    const item = document.getElementById("gift-item").value;
+    if (!to || !item) return alert("Select player and item");
+    await db.ref(`minigameKillers/${to}/inventory/${item}`).set(true);
+    await db.ref("adminLogs").push({ username: currentUser, action: `Gifted ${item} to ${to}`, time: new Date().toISOString() });
+    document.getElementById("gift-status").textContent = `Gifted ${item} to ${to}!`;
+  }
 
-      if (price >= 500) {
-        await ref.child("achievements/store_spender").set(true);
-      }
+  async function addItem() {
+    const name = document.getElementById("item-name").value.trim();
+    const price = parseInt(document.getElementById("item-price").value);
+    const desc = document.getElementById("item-description").value.trim();
+    const exp = document.getElementById("item-expiry").value;
+    const key = name.toLowerCase().replace(/\s+/g, "_");
+    if (!name || isNaN(price)) return alert("Invalid input");
+    const data = { name, price, description: desc };
+    if (exp) data.expiresAt = exp;
+    await db.ref("storeItems/" + key).set(data);
+    loadStore();
+  }
 
-      loadStore();
-    }
+  async function loadLogs() {
+    const logSnap = await db.ref("purchaseLogs").limitToLast(50).once("value");
+    const logs = logSnap.val() || {};
+    document.getElementById("log-list").innerHTML = Object.values(logs).reverse().map(log => `<div class='log-entry'>🛒 <b>${log.user}</b> bought <i>${log.item}</i> for ${log.price} coins</div>`).join("");
+  }
 
-    async function equipItem(key) {
-      const ref = db.ref(`minigameKillers/${currentUser}/equipped`);
-      await ref.update({ [key]: true });
-      loadStore();
-    }
-
-    async function addItem() {
-      const name = document.getElementById("item-name").value.trim();
-      const price = parseInt(document.getElementById("item-price").value);
-      const desc = document.getElementById("item-description").value.trim();
-      const key = name.toLowerCase().replace(/\s+/g, "_");
-
-      if (!name || isNaN(price)) return alert("Invalid input");
-
-      await db.ref("storeItems/" + key).set({ name, price, description: desc });
-      await db.ref("adminLogs").push({
-        username: currentUser, action: `Added/Updated item: ${name}`, time: new Date().toISOString()
-      });
-
-      loadStore();
-    }
-  </script>
+  async function loadStats() {
+    const snap = await db.ref("purchaseLogs").once("value");
+    const logs = snap.val() || {};
+    const items = {}, users = {}, total = 0;
+    Object.values(logs).forEach(l => {
+      items[l.item] = (items[l.item] || 0) + 1;
+      users[l.user] = (users[l.user] || 0) + (l.price || 0);
+    });
+    const topItems = Object.entries(items).sort((a,b)=>b[1]-a[1]).slice(0,5).map(i=>`🛍️ ${i[0]} (${i[1]})`).join("<br>");
+    const topUsers = Object.entries(users).sort((a,b)=>b[1]-a[1]).slice(0,5).map(i=>`👑 ${i[0]} (${i[1]} coins)`).join("<br>");
+    document.getElementById("store-stats").innerHTML = `${topItems}<hr>${topUsers}`;
+  }
+</script>
 </body>
 </html>
