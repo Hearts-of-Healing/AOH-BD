@@ -2,59 +2,56 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>BD Store - All Features</title>
+  <title>BD Store - Improved UI</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     body { background: #0d0d0d; color: white; font-family: sans-serif; margin: 0; padding: 20px; }
-    h1 { color: #ff4d4d; }
+    h1 { color: #ff4d4d; text-align: center; }
     .store-container { max-width: 900px; margin: auto; }
-    .inventory, .store-items, .admin-panel, .achievement-panel, .stats-panel { margin-top: 30px; padding: 20px; background: #1a1a1a; border-radius: 10px; }
-    .item { margin-bottom: 15px; border: 1px solid #333; padding: 10px; border-radius: 6px; }
-    .owned { color: #10b981; }
-    .equipped { font-weight: bold; color: #00ffff; }
+    .section { margin-top: 30px; padding: 20px; background: #1a1a1a; border-radius: 10px; }
+    .item { border: 1px solid #333; padding: 10px; border-radius: 6px; margin-bottom: 15px; }
+    .owned { color: #10b981; font-weight: bold; }
+    .equipped { color: #00ffff; font-weight: bold; }
+    .expired { color: red; font-weight: bold; }
     button { background: #ff4d4d; color: white; padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer; margin-left: 5px; }
-    button[disabled] { background: #555; cursor: not-allowed; }
-    input { padding: 5px; margin: 5px; border-radius: 5px; border: 1px solid #444; }
-    .section-title { color: #ffcc00; font-size: 1.3em; margin-bottom: 10px; }
+    input { padding: 8px; margin: 5px; border-radius: 5px; border: 1px solid #444; background: #222; color: white; }
+    .section-title { color: #ffcc00; font-size: 1.3em; margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 5px; }
     .hidden { display: none; }
   </style>
 </head>
 <body>
   <div class="store-container">
     <h1>BD Clan Store</h1>
-    <div id="login-section">
+    <div id="login-section" class="section">
       <input id="code-input" placeholder="Enter your code">
       <button onclick="login()">Login</button>
       <p id="login-status"></p>
     </div>
     <div id="store-content" class="hidden">
-      <p>Coins: <span id="coin-display">0</span></p>
-      <div class="store-items">
+      <div class="section">
+        <p>Welcome, <b id="user-display"></b> | Coins: <span id="coin-display">0</span></p>
+      </div>
+      <div class="section">
         <div class="section-title">Store Items</div>
         <div id="store-list"></div>
       </div>
-      <div class="inventory">
+      <div class="section">
         <div class="section-title">Inventory</div>
         <div id="inventory-list"></div>
       </div>
-      <div class="achievement-panel">
+      <div class="section">
         <div class="section-title">Achievements</div>
         <div id="achievement-list"></div>
       </div>
-      <div class="admin-panel hidden">
+      <div class="section hidden" id="admin-panel">
         <div class="section-title">Admin Controls</div>
         <input id="item-name" placeholder="Item Name">
         <input id="item-price" placeholder="Price" type="number">
         <input id="item-description" placeholder="Description">
         <button onclick="addItem()">Add Item</button>
-        <div id="admin-items"></div>
-      </div>
-      <div class="stats-panel hidden">
-        <div class="section-title">Store Stats</div>
-        <pre id="store-stats"></pre>
       </div>
     </div>
   </div>
@@ -70,6 +67,7 @@
 
     let currentUser = null;
     let userData = {};
+    const adminUsers = ["BD_Ravynthal", "Kyle", "Ban", "Voidsect"];
 
     async function login() {
       const code = document.getElementById("code-input").value.trim();
@@ -79,11 +77,11 @@
         if (all[user].code === code) {
           currentUser = user;
           userData = all[user];
+          document.getElementById("user-display").textContent = currentUser;
           document.getElementById("login-section").classList.add("hidden");
           document.getElementById("store-content").classList.remove("hidden");
-          if (userData.isAdmin) {
-            document.querySelector(".admin-panel").classList.remove("hidden");
-            document.querySelector(".stats-panel").classList.remove("hidden");
+          if (adminUsers.includes(currentUser)) {
+            document.getElementById("admin-panel").classList.remove("hidden");
           }
           loadStore();
           return;
@@ -111,10 +109,10 @@
         const owned = inv[key];
         const equipped = eq[key];
         const isExpired = item.expiresAt && new Date(item.expiresAt) < new Date();
-        const html = `
+        storeList.innerHTML += `
           <div class="item">
             <b>${item.name}</b> - ${item.description} (${item.price} coins)
-            ${isExpired ? '<span style="color:red;">[Expired]</span>' :
+            ${isExpired ? '<span class="expired">[Expired]</span>' :
               owned ? '<span class="owned">[Owned]</span>' :
               `<button onclick="buyItem('${key}', ${item.price})">Buy</button>`}
             ${owned && !isExpired ? 
@@ -122,7 +120,6 @@
               `<button onclick="equipItem('${key}')">Equip</button>`) : ''}
           </div>
         `;
-        storeList.innerHTML += html;
       }
 
       const inventoryList = document.getElementById("inventory-list");
@@ -149,7 +146,7 @@
       db.ref("purchaseLogs").push({
         user: currentUser, item: key, price, time: Date.now()
       });
-      await db.ref("adminLogs").push({
+      db.ref("adminLogs").push({
         username: currentUser, action: `Purchased ${key}`, time: new Date().toISOString()
       });
 
