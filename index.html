@@ -28,17 +28,6 @@
         .rank-member {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
         }
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.7);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
         }
         .theme-toggle {
             position: fixed;
@@ -346,13 +335,6 @@
     </style>
 </head>
 <body class="demon-theme text-white min-h-screen overflow-x-hidden">
-    <!-- Add loading overlay -->
-    <div id="loading-overlay" class="loading-overlay">
-        <div class="text-2xl text-red-500">
-            <i class="fas fa-spinner fa-spin mr-2"></i> Loading...
-        </div>
-    </div>
-
     <!-- Add theme toggle -->
     <div id="theme-toggle" class="theme-toggle">
         <i class="fas fa-moon"></i>
@@ -791,11 +773,6 @@
             await initializeData();
             await cleanDatabaseStructure();
             setupEventListeners();
-            
-            // Hide loading overlay
-            setTimeout(() => {
-                document.getElementById('loading-overlay').style.display = 'none';
-            }, 1000);
         });
 
         // Database functions
