@@ -8,6 +8,42 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
+        /* Add these new styles */
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    .theme-toggle {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #ff4d4d;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      z-index: 100;
+    }
+    .log-filter {
+      background: #333;
+      color: white;
+      padding: 8px;
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+
     body { background: #0d0d0d; color: white; font-family: sans-serif; margin: 0; padding: 20px; }
     h1 { color: #ff4d4d; text-align: center; }
     .store-container { max-width: 900px; margin: auto; }
@@ -25,6 +61,12 @@
   </style>
 </head>
 <body>
+
+  <!-- Add theme toggle -->
+  <div id="theme-toggle" class="theme-toggle">
+    <i class="fas fa-moon"></i>
+  </div>
+  
   <div class="store-container">
     <h1>BD Clan Store</h1>
     <div id="login-section" class="section">
@@ -83,6 +125,103 @@
   let currentUser = null;
   let userData = {};
   const adminUsers = ["BD_Ravynthal", "Kyle", "Ban", "Voidsect"];
+  <script>
+    // Add these constants
+    const ADMIN_USERS = ["BD_Ravynthal", "Kyle", "Ban", "Voidsect"];
+    let currentUser = null;
+    let isAdmin = false;
+
+    // Add theme toggle functionality
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      document.body.classList.toggle('light-mode');
+      localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+      updateThemeIcon();
+    });
+
+    function updateThemeIcon() {
+      const icon = document.getElementById('theme-toggle').querySelector('i');
+      if (document.body.classList.contains('light-mode')) {
+        icon.classList.replace('fa-moon', 'fa-sun');
+      } else {
+        icon.classList.replace('fa-sun', 'fa-moon');
+      }
+    }
+
+    // Modified login function
+    async function login() {
+      const code = document.getElementById("code-input").value.trim();
+      if (!code) return alert("Please enter your code");
+
+      try {
+        const snap = await db.ref("minigameKillers").once("value");
+        let userFound = null;
+
+        snap.forEach(child => {
+          const user = child.val();
+          if (user.code === code) {
+            userFound = {
+              username: child.key,
+              data: user
+            };
+          }
+        });
+
+        if (!userFound) {
+          return alert("Invalid code");
+        }
+
+        currentUser = userFound.username;
+        isAdmin = ADMIN_USERS.includes(currentUser);
+        
+        document.getElementById("user-display").textContent = currentUser;
+        document.getElementById("login-section").classList.add("hidden");
+        document.getElementById("store-content").classList.remove("hidden");
+        
+        if (isAdmin) {
+          document.getElementById("admin-panel").classList.remove("hidden");
+        }
+        
+        loadStore();
+        
+      } catch (error) {
+        console.error("Login error:", error);
+        alert("Error logging in. Please try again.");
+      }
+    }
+
+    // Modified loadLogs function with filtering
+    async function loadLogs(filter = "all") {
+      const logSnap = await db.ref("purchaseLogs").limitToLast(50).once("value");
+      const logs = Object.values(logSnap.val() || {});
+      
+      let filteredLogs = logs;
+      if (filter !== "all") {
+        filteredLogs = logs.filter(log => {
+          if (filter === "high_value") return log.price >= 500;
+          if (filter === "admin") return ADMIN_USERS.includes(log.user);
+          return true;
+        });
+      }
+      
+      document.getElementById("log-list").innerHTML = filteredLogs
+        .reverse()
+        .map(log => `
+          <div class='log-entry'>
+            🛒 <b>${log.user}</b> bought <i>${log.item}</i> for ${log.price} coins
+            ${log.price >= 500 ? '💰' : ''}
+          </div>
+        `)
+        .join("");
+    }
+
+    // Initialize when DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      // Check saved theme
+      if (localStorage.getItem('theme') === 'light') {
+        document.body.classList.add('light-mode');
+      }
+      updateThemeIcon();
+    });
 
   function toggleAdminTools() {
     document.getElementById("admin-tools").classList.toggle("hidden");
