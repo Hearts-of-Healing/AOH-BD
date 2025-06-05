@@ -709,11 +709,16 @@
                     // Add click handler with permission check
                     memberCard.onclick = () => {
                         if (isAdmin || member.username === currentUser) {
-                            showEditMemberModal(member.username);
-                        } else {
-                            alert("You can only edit your own profile!");
-                        }
-                    };
+  const editBtn = document.createElement('button');
+  editBtn.className = 'edit-btn absolute top-2 right-2 bg-yellow-600 hover:bg-yellow-700 text-white p-1 rounded-full transition duration-300';
+  editBtn.innerHTML = '<i class="fas fa-edit text-xs"></i>';
+  editBtn.onclick = (e) => {
+    e.stopPropagation();
+    showEditMemberModal(member.username);
+  };
+  memberCard.appendChild(editBtn);
+}
+
                     
                     // Progress bar and rank colors remain the same
                     memberCard.innerHTML = `
@@ -1107,7 +1112,10 @@ async function verifyDashboardAdminKey() {
         }
 
         function showEditMemberModal(username) {
-            if (!isAdmin) return;
+           if (!isAdmin && username !== currentUser) {
+  alert("You can only edit your own profile.");
+  return;
+}
             
             getMembers(members => {
                 const member = members.find(m => m.username === username);
@@ -1119,10 +1127,6 @@ async function verifyDashboardAdminKey() {
                 document.getElementById('edit-member-level').value = member.level;
                 editMemberModal.classList.remove('hidden');
             });
-            if (!isAdmin && username !== currentUser) {
-  alert("You can only edit your own profile.");
-  return;
-}
         }
 
         function hideEditMemberModal() {
